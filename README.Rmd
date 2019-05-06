@@ -3,15 +3,10 @@ output:
   md_document
 ---
 
-# `r emo::ji("fire")` `drake` for Workflow Happiness `r emo::ji("fire")`
+# `r emo::ji("fire")` This Talk is on Fire: Using Twitter and Google to Track Fires in NYC `r emo::ji("fire")`
 
-This is an intro to the [`drake`](https://github.com/ropensci/drake) R package for data pipelining. It might be useful for you if you're interested in reproducibility after you make changes to your code.
+[Slides](https://aedobbyn.github.io/nyr-2019/)
 
-The talk is split into two parts: [**slides**](https://aedobbyn.github.io/nyc-fires/index.html), and a [**live coding walkthrough**](https://github.com/aedobbyn/nyc-fires/blob/master/live_code.md). The latter is meant to be stepped through in an R session rather than knit. 
-
-### Why all the fire emoji tho
-
-...especially if the whole point of `drake` is that you don't need to burn it all down and start from scratch each time?
 
 This talk is motivated by the [**NYCFireWire Twitter account**](https://twitter.com/NYCFireWire) with an assist from [Gritty](https://youtu.be/FNt0anp7WK8?t=8) at a [burner account](https://twitter.com/didntstartit).
 
@@ -27,6 +22,4 @@ It relies on the [**`rtweet`**](https://github.com/mkearney/rtweet) and [**`ggma
   <img src="./img/happy_drake.jpg" height="200" align="right">
 <!-- </p> -->
 
-
-* The best resources on `drake` remain the [`drake` manual](https://ropenscilabs.github.io/drake-manual/) and [Will](https://twitter.com/wmlandau) [Landau](https://github.com/wlandau) :)
 
