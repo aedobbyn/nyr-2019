@@ -1,0 +1,28 @@
+@import url(https://fonts.googleapis.com/css?family=Roboto);
+
+:root {
+    --link-color: #33a0a0;
+    --code-text-color: #6a69e0;
+}
+
+h1, h2, h3, body{
+  font-family: 'Roboto';
+  font-weight: normal;
+}
+
+h4 { font-size: 1.3em; }
+
+figcaption {
+  font-size: 0.8em;
+   --code-text-color: #FFD740;
+}
+
+img, video, iframe {
+  padding-left: 10%;
+  padding-right: 10%;
+}
+
+.blue-light {
+  background-image:  url('https://static01.nyt.com/images/2018/12/29/nyregion/28xp-explosion-sub-print/28xp-explosion-sub-facebookJumbo.jpg');
+  background-size: cover;
+}

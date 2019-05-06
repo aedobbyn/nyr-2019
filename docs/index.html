@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>This Talk is on Fire</title>
+    <meta charset="utf-8">
+    <meta name="author" content="Amanda Dobbyn" />
+    <link href="libs/remark-css/default.css" rel="stylesheet" />
+    <link href="libs/remark-css/shinobi.css" rel="stylesheet" />
+    
+      <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="dobbs.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# This Talk is on Fire
+## <code>Using Twitter and Google to Track Fires in NYC</code>
+### Amanda Dobbyn
+
+---
+
+
+
+
+
+class: inverse
+
+## Quick About Me
+
+&lt;br&gt;
+
+.left-column[
+
+**Day job**: ultimate frisbee player
+
+
+**For fun**: Data Scientist at [Earlybird Software](http://www.earlybird.co/), former co-organizer of [R-Ladies Chicago](https://rladieschicago.org/)
+
+&lt;!-- .pull-left[![](./img/pingpong.jpg)] --&gt;
+
+**GitHub**: [@aedobbyn](https://github.com/aedobbyn)
+
+**Website**: https://dobb.ae
+
+**Twitter**: [@dobbleobble](https://twitter.com/dobbleobble)
+
+]
+
+.right-column[![](./img/fris.jpg)]
+
+---
+
+## The Plan
+
+&lt;br&gt;
+
+1) I'll give an intro to what `drake` is and how it works.
+
+--
+
+&lt;br&gt;
+
+2) We'll switch to a [live coding Rmd](https://github.com/aedobbyn/nyc-fires/blob/master/live_code.md) which hopefully won't totally break 🤞
+
+--
+
+&lt;br&gt;
+
+In that part, we'll use the Twitter and Google Maps geocoding APIs to run a `drake` pipeline.
+
+--
+
+&lt;br&gt;
+&lt;br&gt;
+&lt;br&gt;
+&lt;br&gt;
+&lt;br&gt;
+
+All code and slides on [GitHub](https://github.com/aedobbyn/nyc-fires).
+
+---
+
+## Our Plan
+
+.pull-right[![](./img/nyc_fire.jpg)]
+
+&lt;br&gt;
+
+&lt;br&gt;
+
+The Twitter account that let us know that this wasn't in fact aliens is [NYCFireWire](https://twitter.com/NYCFireWire).
+
+&lt;br&gt;
+
+Normally they just tweet out fires and their locations in a more or less predictable pattern:
+
+&lt;br&gt;
+
+&lt;br&gt;
+
+--
+
+`&lt;borough&gt; ** &lt;some numbers&gt; ** &lt;address&gt; &lt;description of fire&gt;`
+
+--
+
+&lt;br&gt;
+
+
+We can use their tweets to get some info on where and when fires happen in NYC.
+
+
+???
+
+I'll illustrate a way you might want to use `drake` with something that's close to home for us.
+
+What if we were constructing an analysis of these tweets and wanted to make sure our pipeline worked end-to-end, but didn't want to unnecessarily re-run outdated parts of it unless we needed to?
+
+
+---
+
+## The Pipeline
+
+1. Pull in tweets, either the first big batch or any new ones that show up
+
+--
+
+2. Extract addresses from the tweets (🎶 regex time 🎶)
+
+--
+
+3. Send addresses to the Google Maps API to grab their latitudes and longitudes
+
+--
+
+4. Profit
+
+--
+
+&lt;br&gt;
+
+All functions are defined in [`didnt_start_it.R`](https://github.com/aedobbyn/nyc-fires/blob/master/R/didnt_start_it.R), which we'll source in now.
+
+
+```r
+source(here::here("R", "didnt_start_it.R")) 
+```
+
+--
+
+&lt;br&gt;
+
+**Caveats**
+
+This analysis relies on the [rtweet](https://github.com/mkearney/rtweet) and [ggmap](https://github.com/dkahle/ggmap) packages.
+
+To be able to run it in full you'll need a [Twitter API access token](https://rtweet.info/articles/auth.html) and [Google Maps Geocoding API key](https://developers.google.com/maps/documentation/geocoding/intro#Geocoding).
+
+---
+
+## Grabbing Tweets
+
+[`get_tweets`](https://github.com/aedobbyn/nyc-fires/blob/master/R/didnt_start_it.R)
+
+--
+
+*Main idea*: 
+
+* **Builds up a file** of the most recent set of tweets from a given account
+
+--
+
+*Details*:
+- If neither file nor `tbl` is supplied as arguments, grabs an initial *seed* batch of tweets
+- If either is supplied, checks for new tweets and grabs them if any
+- Spits out the latest to the same file
+
+
+
+&lt;br&gt;
+
+
+```r
+get_tweets(n_tweets_seed = 3)
+## # A tibble: 3 x 5
+##   text                  user_id status_id   created_at          screen_name
+##   &lt;chr&gt;                 &lt;chr&gt;   &lt;chr&gt;       &lt;dttm&gt;              &lt;chr&gt;      
+## 1 Queens *10-75* Box 7… 560024… 1125196845… 2019-05-05 20:33:27 NYCFireWire
+## 2 Queens *10-75* Box 7… 560024… 1125196706… 2019-05-05 20:32:54 NYCFireWire
+## 3 Queens *10-75* Box 7… 560024… 1125196346… 2019-05-05 20:31:28 NYCFireWire
+```
+
+???
+
+- `get_seed_tweets` grabs a batch of tweets *or* reads in seed tweets from a file if the file exists
+- `get_more_tweets` checks if there are new tweets and, if so, pulls in the right number of them
+- `get_tweets` runs `get_seed_tweets` if given a null `tbl` argument, otherwise runs `get_more_tweets`
+
+
+---
+
+## Grabbing Seed Tweets
+
+A closer look at just the text of the tweets:
+
+
+```r
+get_tweets(n_tweets_seed = 5) %&gt;% 
+  select(text) %&gt;% 
+  kable()
+```
+
+&lt;table&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; text &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Queens *10-75* Box 7515 . . 2-04 Astoria Boulevard, Battalion 49 transmitting the 10-75 for a Compactor fire in a multiple dwelling &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Queens *10-75* Box 7515 . 30-2 Astoria Blvd, . Battalion 49 transmitting the 10-75 for a Compactor fire in a multiple dwelling &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Queens *10-75* Box 7515. . Battalion 49 transmitting the 10-75 for a compactor fire in A Multiple Dwelling &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Bronx *All Hands* Box 4796. 2615 Grand Concourse, . Fire on the 2nd floor Of A 7 Story Multiple Dwelling &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Bronx *All Hands* Box 3136. 672 Oakland Pl off Belmont Ave.. Fire in a private dwelling. &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+
+---
+
+## Reupping Tweets
+
+To show how `get_tweets` can start with a `tbl` of tweets and look for new ones,
+
+we'll grab 10 `seed_tweets` that are all **older** than an old tweet ID.
+
+--
+
+&lt;br&gt;
+
+
+```r
+old_tweet_id &lt;- "1084948074588487680" # From Jan 14
+
+seed_tweets &lt;- 
+  get_tweets(
+    n_tweets_seed = 10,
+    max_id = old_tweet_id
+  )
+
+nrow(seed_tweets)
+## [1] 10
+```
+
+---
+
+## Reupping Tweets
+
+Using `seed_tweets` as an input to the same `get_tweets` function,
+
+we check for new tweets, and, if there are any, pull them in.
+
+--
+
+
+```r
+full_tweets &lt;- 
+  get_tweets(seed_tweets, 
+             n_tweets_reup = 5)
+## Searching for new tweets.
+## 5 new tweet(s) pulled.
+```
+
+--
+
+&lt;br&gt;
+
+
+```r
+nrow(seed_tweets)
+## [1] 10
+nrow(full_tweets)
+## [1] 15
+```
+
+
+---
+
+## Getting Addresses
+
+With `pull_addresses` we parse the text of the tweet to pull out borough and street and string them together into an address.
+
+
+
+
+```r
+get_tweets(max_id = old_tweet_id) %&gt;% 
+* pull_addresses() %&gt;%
+  select(text, street, borough, address) %&gt;% 
+  kable() 
+```
+
+&lt;table&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; text &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; street &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; borough &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; address &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Bronx *66-75-3049* 1449 Commonwealth ave. Attic fire private dwelling. &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 1449 Commonwealth ave &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; The Bronx &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 1449 Commonwealth ave, The Bronx &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Manhattan *66-75-0755* 330 E 39 St. Fire in the duct work 3rd floor. 10-77(HiRise Residential). E-16/TL-7 1st due &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 330 E 39 St &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Manhattan &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 330 E 39 St, Manhattan &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Manhattan 10-77* 66-75-2017* 70 Little West St x 2nd Pl. BC01 has a fire on the 7th floor in the laundry area. &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 70 Little West St x 2nd Pl &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Manhattan &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 70 Little West St x 2nd Pl, Manhattan &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Bronx *66-75-2251* 2922 3rd Avenue at Westchester Avenue, Battalion 14 transmitting a 10-75 for a fire on the 4th floor of a 6 story commercial building. Squad 41 First Due &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2922 3rd Avenue at Westchester Avenue &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; The Bronx &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2922 3rd Avenue at Westchester Avenue, The Bronx &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Brooklyn **77-75-0270** 330 Bushwick Avenue Near McKibbin Street, Fire on the 4th Floor &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 330 Bushwick Avenue Near McKibbin Street &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Brooklyn &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 330 Bushwick Avenue Near McKibbin Street, Brooklyn &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Brooklyn *77-75-0855* 899 Hancock St. Fire top floor 3 story &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 899 Hancock St &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Brooklyn &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 899 Hancock St, Brooklyn &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Brooklyn **77-75-0855** 899 Hancock Street Near Howard Avenue, All hands going to work for fire I’m the top floor &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 899 Hancock Street Near Howard Avenue &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Brooklyn &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 899 Hancock Street Near Howard Avenue, Brooklyn &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Bronx *66-75-3937* 3840 Orloff Av. Fire 4th floor. &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 3840 Orloff Av &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; The Bronx &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 3840 Orloff Av, The Bronx &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Staten Island *MVA/PIN* Box 1744-
+490 Harold St off Forest Hill Rd. Hurst tool in operation. &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Box 1744-
+490 Harold St off Forest Hill Rd &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Staten Island &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Box 1744-
+490 Harold St off Forest Hill Rd, Staten Island &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Queens 99-75-6810 111-15 227 St BC-54 using all hands for a fire in a pvt dwelling &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; NA &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Queens &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Queens &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+---
+
+## Getting Lat and Long
+
+Last step of the main pipeline! 
+
+--
+
+**Reverse geocoding** = getting latitude and longitude from an address.
+
+The [`ggmap`](https://www.rdocumentation.org/packages/ggmap/versions/2.6.1/topics/geocode) package exposes this feature of the [Google Maps](https://cloud.google.com/maps-platform/) API.
+
+
+--
+
+
+
+
+```r
+get_tweets(n_tweets_seed = 5,
+           max_id = old_tweet_id) %&gt;% 
+  pull_addresses() %&gt;% 
+* get_lat_long()
+## Source : https://maps.googleapis.com/maps/api/geocode/json?address=1449%20Commonwealth%20ave%2C%20The%20Bronx&amp;key=xxx
+## Source : https://maps.googleapis.com/maps/api/geocode/json?address=330%20E%2039%20St%2C%20Manhattan&amp;key=xxx
+## Source : https://maps.googleapis.com/maps/api/geocode/json?address=70%20Little%20West%20St%20x%202nd%20Pl%2C%20Manhattan&amp;key=xxx
+## Source : https://maps.googleapis.com/maps/api/geocode/json?address=2922%203rd%20Avenue%20at%20Westchester%20Avenue%2C%20The%20Bronx&amp;key=xxx
+## Source : https://maps.googleapis.com/maps/api/geocode/json?address=330%20Bushwick%20Avenue%20Near%20McKibbin%20Street%2C%20Brooklyn&amp;key=xxx
+## # A tibble: 5 x 5
+##   address              lat  long created_at          text                  
+##   &lt;chr&gt;              &lt;dbl&gt; &lt;dbl&gt; &lt;dttm&gt;              &lt;chr&gt;                 
+## 1 1449 Commonwealth…  40.8 -73.9 2019-01-14 15:54:18 Bronx *66-75-3049* 14…
+## 2 330 E 39 St, Manh…  40.7 -74.0 2019-01-14 13:41:11 Manhattan *66-75-0755…
+## 3 70 Little West St…  40.7 -74.0 2019-01-14 12:40:19 Manhattan 10-77* 66-7…
+## 4 2922 3rd Avenue a…  40.8 -73.9 2019-01-14 07:06:21 Bronx *66-75-2251* 29…
+## 5 330 Bushwick Aven…  40.7 -73.9 2019-01-13 21:27:15 Brooklyn **77-75-0270…
+```
+
+
+---
+
+## Downstream Analysis
+
+Later in the pipeline we'll:
+
+`count_fires`, summing up the total number of fires per `lat`-`long` combo
+
+&lt;br&gt;
+
+
+```r
+count_fires &lt;- function(tbl) {
+  tbl %&gt;%
+    drop_na() %&gt;%
+    count(lat, long)
+}
+```
+
+&lt;br&gt;
+
+and plot them on a map (thanks again, `ggmap`)
+
+---
+
+## Downstream Analysis
+
+
+```r
+get_map("new york city") %&gt;% 
+  ggmap()
+## Source : https://maps.googleapis.com/maps/api/staticmap?center=new%20york%20city&amp;zoom=10&amp;size=640x640&amp;scale=2&amp;maptype=terrain&amp;language=en-EN&amp;key=xxx
+## Source : https://maps.googleapis.com/maps/api/geocode/json?address=new%20york%20city&amp;key=xxx
+```
+
+![](index_files/figure-html/unnamed-chunk-13-1.png)&lt;!-- --&gt;
+
+
+---
+
+
+
+
+Using 3000 tweets:
+
+
+```r
+plot_fire_sums(fire_sums, output_path = NULL)
+```
+
+![](index_files/figure-html/unnamed-chunk-15-1.png)&lt;!-- --&gt;
+
+
+&lt;!-- &lt;p&gt; --&gt;
+&lt;!-- &lt;img src="./img/fire_sums_plot.png"&gt; --&gt;
+&lt;!-- &lt;/p&gt; --&gt;
+ 
+
+---
+
+## Quick Benchmark
+
+So where does `drake` really come in handy here?
+
+--
+
+The trips to and from Twitter and Google take a while.
+
+--
+
+&lt;br&gt;
+
+What's the estimate of running the pipeline on a single tweet? 
+
+--
+
+
+```r
+(our_bench &lt;-
+   
+  bench::mark({
+    
+    get_tweets(n_tweets_seed = 1) %&gt;%  # Hi Twitter
+    pull_addresses() %&gt;%
+    get_lat_long()  # Hi Google
+    
+    }) %&gt;% 
+   
+      as_tibble() %&gt;% 
+      pull(median))
+## [1] 275ms
+```
+
+
+---
+
+## Quick Benchmark
+
+Roughly how many **minutes** would the pipeline take for 3k tweets? 
+
+(No batch speedups since we're going `rowwise` on each tweet.)
+
+&lt;br&gt;
+
+
+```r
+(n_mins &lt;- 
+   (as.numeric(our_bench) # Returns this in seconds
+      * 3000)  # 3k tweets
+       / 60 # 60 seconds in a minute
+ ) 
+## [1] 13.74552
+```
+
+
+---
+## Quick Benchmark
+
+All our downstream analyses depend on this pipeline.
+
+If we tweak some code but `drake` determines we don't need to rerun the pipeline, we will save **14 minutes** of our lives. 
+
+&lt;br&gt;
+
+![](https://media.giphy.com/media/5VMNcCxVBibZK/giphy.gif)
+
+&lt;br&gt;
+
+And we rest assured we have the most up-to-date data.
+
+---
+
+## Our `drake` Plan
+
+We'll set up the `drake` plan and run it for real. 
+
+An exclusive sneak peek:
+
+
+```r
+plan &lt;-
+  drake_plan(
+    seed_fires = get_tweets(), 
+    fires = target(
+      command = get_tweets(tbl = seed_fires),
+        # Always look for new tweets
+      trigger = trigger(condition = TRUE) 
+    ),
+      # Extract addresses from tweets
+    addresses = pull_addresses(fires), 
+      # Send to Google for lat-longs
+    lat_long = get_lat_long(addresses), 
+      # Sum up n fires per lat-long combo
+    fire_sums = count_fires(lat_long), 
+
+    time_graph = graph_fire_times(lat_long),
+    plot = plot_fire_sums(fire_sums)
+  )
+```
+
+---
+
+## Questions so far?
+
+
+```r
+devtools::session_info()
+## ─ Session info ──────────────────────────────────────────────────────────
+##  setting  value                       
+##  version  R version 3.5.3 (2019-03-11)
+##  os       macOS Mojave 10.14          
+##  system   x86_64, darwin15.6.0        
+##  ui       RStudio                     
+##  language (EN)                        
+##  collate  en_US.UTF-8                 
+##  ctype    en_US.UTF-8                 
+##  tz       America/New_York            
+##  date     2019-05-05                  
+## 
+## ─ Packages ──────────────────────────────────────────────────────────────
+##  package     * version    date       lib
+##  askpass       1.1        2019-01-13 [2]
+##  assertthat    0.2.1      2019-03-21 [2]
+##  backports     1.1.4      2019-04-10 [1]
+##  base64url     1.4        2018-05-14 [2]
+##  bench         1.0.1      2018-06-06 [2]
+##  bindr         0.1.1      2018-03-13 [2]
+##  bindrcpp    * 0.2.2      2018-03-29 [2]
+##  bitops        1.0-6      2013-08-17 [2]
+##  broom         0.5.1      2018-12-05 [2]
+##  callr         3.2.0      2019-03-15 [2]
+##  cellranger    1.1.0      2016-07-27 [2]
+##  cli           1.1.0      2019-03-19 [2]
+##  codetools     0.2-16     2018-12-24 [2]
+##  colorspace    1.4-0      2019-01-13 [2]
+##  crayon        1.3.4      2017-09-16 [1]
+##  curl          3.3        2019-01-10 [2]
+##  desc          1.2.0      2018-05-01 [2]
+##  devtools      2.0.2      2019-04-08 [2]
+##  digest        0.6.18     2018-10-10 [2]
+##  dplyr       * 0.8.0.1    2019-02-15 [2]
+##  drake       * 7.2.0      2019-04-19 [1]
+##  emo           0.0.0.9000 2018-07-05 [2]
+##  emojifont   * 0.5.2      2019-01-17 [2]
+##  evaluate      0.13       2019-02-12 [2]
+##  fansi         0.4.0      2018-12-20 [2]
+##  forcats     * 0.4.0      2019-02-17 [2]
+##  fs          * 1.2.7      2019-03-19 [1]
+##  generics      0.0.2      2018-11-29 [2]
+##  ggmap       * 2.7.904    2019-01-04 [2]
+##  ggplot2     * 3.1.0      2018-10-25 [2]
+##  glue        * 1.3.1      2019-03-12 [2]
+##  gtable        0.2.0      2016-02-26 [2]
+##  haven         2.1.0      2019-02-19 [2]
+##  here        * 0.1        2017-05-28 [2]
+##  highr         0.8        2019-03-20 [1]
+##  hms           0.4.2      2018-03-10 [2]
+##  htmltools     0.3.6      2017-04-28 [2]
+##  httpuv        1.4.5.1    2018-12-18 [2]
+##  httr          1.4.0      2018-12-11 [2]
+##  igraph        1.2.2      2018-07-27 [2]
+##  jpeg          0.1-8      2014-01-23 [2]
+##  jsonlite      1.6        2018-12-07 [2]
+##  kableExtra  * 1.0.1      2019-01-22 [2]
+##  knitr       * 1.22       2019-03-08 [1]
+##  labeling      0.3        2014-08-23 [2]
+##  later         0.7.5      2018-09-18 [2]
+##  lattice       0.20-38    2018-11-04 [2]
+##  lazyeval      0.2.1      2017-10-29 [2]
+##  lubridate     1.7.4      2018-04-11 [2]
+##  magrittr      1.5        2014-11-22 [2]
+##  maps        * 3.3.0      2018-04-03 [2]
+##  memoise       1.1.0      2017-04-21 [2]
+##  mime          0.6        2018-10-05 [2]
+##  modelr        0.1.4      2019-02-18 [2]
+##  munsell       0.5.0      2018-06-12 [2]
+##  nlme          3.1-137    2018-04-07 [2]
+##  openssl       1.3        2019-03-22 [1]
+##  packrat       0.4.9-10   2018-08-10 [2]
+##  pillar        1.3.1.9000 2019-02-03 [2]
+##  pkgbuild      1.0.3      2019-03-20 [1]
+##  pkgconfig     2.0.2      2018-08-16 [2]
+##  pkgload       1.0.2      2018-10-29 [2]
+##  plyr          1.8.4      2016-06-08 [2]
+##  png           0.1-7      2013-12-03 [2]
+##  prettyunits   1.0.2      2015-07-13 [2]
+##  processx      3.3.0      2019-03-10 [2]
+##  profmem       0.5.0      2018-01-30 [2]
+##  promises      1.0.1      2018-04-13 [2]
+##  proto         1.0.0      2016-10-29 [2]
+##  ps            1.3.0      2018-12-21 [2]
+##  purrr       * 0.3.2      2019-03-15 [2]
+##  R6            2.4.0      2019-02-14 [2]
+##  Rcpp          1.0.1      2019-03-17 [2]
+##  readr       * 1.3.1      2018-12-21 [2]
+##  readxl        1.3.0.9000 2019-02-20 [2]
+##  remotes       2.0.4      2019-04-10 [1]
+##  RgoogleMaps   1.4.3      2018-11-07 [2]
+##  rjson         0.2.20     2018-06-08 [2]
+##  rlang         0.3.4      2019-04-07 [1]
+##  rmarkdown     1.11       2018-12-08 [2]
+##  rprojroot     1.3-2      2018-01-03 [2]
+##  rstudioapi    0.10       2019-03-19 [1]
+##  rtweet      * 0.6.8      2018-09-28 [2]
+##  rvest         0.3.2      2016-06-17 [2]
+##  scales        1.0.0      2018-08-09 [2]
+##  servr         0.11       2018-10-23 [2]
+##  sessioninfo   1.1.1      2018-11-05 [2]
+##  showtext      0.6        2019-01-10 [2]
+##  showtextdb    2.0        2017-09-11 [2]
+##  storr         1.2.1      2018-10-18 [2]
+##  stringi       1.4.3      2019-03-12 [2]
+##  stringr     * 1.4.0      2019-02-10 [2]
+##  sysfonts      0.8        2018-10-11 [2]
+##  testthat    * 2.0.1      2018-10-13 [2]
+##  tibble      * 2.1.1      2019-03-16 [2]
+##  tidyr       * 0.8.3      2019-03-01 [2]
+##  tidyselect  * 0.2.5      2018-10-11 [2]
+##  tidyverse   * 1.2.1      2017-11-14 [2]
+##  usethis       1.5.0      2019-04-07 [1]
+##  utf8          1.1.4      2018-05-24 [2]
+##  viridisLite   0.3.0      2018-02-01 [2]
+##  webshot       0.5.1      2018-09-28 [2]
+##  withr         2.1.2      2018-03-15 [2]
+##  xaringan      0.8.6      2019-02-04 [2]
+##  xfun          0.6        2019-04-02 [1]
+##  xml2          1.2.0      2018-01-24 [2]
+##  yaml          2.2.0      2018-07-25 [2]
+##  source                                  
+##  CRAN (R 3.5.2)                          
+##  CRAN (R 3.5.3)                          
+##  CRAN (R 3.5.2)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.3)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.2)                          
+##  CRAN (R 3.5.3)                          
+##  CRAN (R 3.5.2)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.2)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.2)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.2)                          
+##  CRAN (R 3.5.2)                          
+##  Github (hadley/emo@02a5206)             
+##  Github (GuangchuangYu/emojifont@f7ba3ec)
+##  CRAN (R 3.5.2)                          
+##  Github (brodieG/fansi@ab11e9c)          
+##  CRAN (R 3.5.2)                          
+##  CRAN (R 3.5.2)                          
+##  CRAN (R 3.5.0)                          
+##  Github (dkahle/ggmap@4dfe516)           
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.2)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.2)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.2)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.2)                          
+##  CRAN (R 3.5.2)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.3)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.2)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.3)                          
+##  CRAN (R 3.5.2)                          
+##  Github (rstudio/packrat@7d320b1)        
+##  Github (r-lib/pillar@3a54b8d)           
+##  CRAN (R 3.5.2)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.2)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.2)                          
+##  CRAN (R 3.5.2)                          
+##  CRAN (R 3.5.2)                          
+##  CRAN (R 3.5.0)                          
+##  Github (tidyverse/readxl@0fcfb3f)       
+##  CRAN (R 3.5.2)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.2)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.2)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.2)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.2)                          
+##  CRAN (R 3.5.2)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.2)                          
+##  CRAN (R 3.5.2)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.2)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+##  Github (yihui/xaringan@0d713d5)         
+##  CRAN (R 3.5.2)                          
+##  CRAN (R 3.5.0)                          
+##  CRAN (R 3.5.0)                          
+## 
+## [1] /Users/amanda/Library/R/3.5/library
+## [2] /Library/Frameworks/R.framework/Versions/3.5/Resources/library
+```
+
+
+---
+
+class: inverse
+
+## Live coding time!
+
+&lt;br&gt;
+
+The `rtweet` package also supports POSTing tweets, so we can test out whether our trigger successfully pulls in new tweet with our own
+
+--
+
+&lt;br&gt;
+
+## 🔥 **[`burner account!`](https://twitter.com/didntstartit)** 🔥
+
+&lt;br&gt;
+
+--
+
+On to [part 2](https://github.com/aedobbyn/nyc-fires/blob/master/live_code.md) after this message from our sponsor.
+    </textarea>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false,
+"navigation": {
+"scroll": false
+}
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function() {
+  var d = document, s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})();</script>
+
+<script>
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();
+</script>
+
+<script>
+(function() {
+  var i, text, code, codes = document.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+})();
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>

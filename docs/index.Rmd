@@ -1,0 +1,493 @@
+---
+title: "This Talk is on Fire"
+subtitle: "`Using Twitter and Google to Track Fires in NYC`"
+author: "Amanda Dobbyn"
+output:
+  xaringan::moon_reader:
+    css: ["default", "shinobi", "dobbs.css"]
+    lib_dir: libs
+    includes:
+      in_header: header.html
+    nature:
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+      navigation:
+        scroll: false
+---
+
+```{r setup, include=FALSE, warning=FALSE}
+library(knitr)
+library(kableExtra)
+opts_chunk$set(echo = TRUE, eval = TRUE, collapse = TRUE, cache = TRUE)
+options(htmltools.dir.version = FALSE)
+options(knitr.table.format = "html")
+```
+
+
+class: inverse
+
+## Quick About Me
+
+<br>
+
+.left-column[
+
+**Day job**: ultimate frisbee player
+
+
+**For fun**: Data Scientist at [Earlybird Software](http://www.earlybird.co/), former co-organizer of [R-Ladies Chicago](https://rladieschicago.org/)
+
+<!-- .pull-left[![](./img/pingpong.jpg)] -->
+
+**GitHub**: [@aedobbyn](https://github.com/aedobbyn)
+
+**Website**: https://dobb.ae
+
+**Twitter**: [@dobbleobble](https://twitter.com/dobbleobble)
+
+]
+
+.right-column[![](./img/fris.jpg)]
+
+---
+
+## The Plan
+
+<br>
+
+1) I'll give an intro to what `drake` is and how it works.
+
+--
+
+<br>
+
+2) We'll switch to a [live coding Rmd](https://github.com/aedobbyn/nyc-fires/blob/master/live_code.md) which hopefully won't totally break `r emo::ji("crossed_fingers")`
+
+--
+
+<br>
+
+In that part, we'll use the Twitter and Google Maps geocoding APIs to run a `drake` pipeline.
+
+--
+
+<br>
+<br>
+<br>
+<br>
+<br>
+
+All code and slides on [GitHub](https://github.com/aedobbyn/nyc-fires).
+
+---
+
+## Our Plan
+
+.pull-right[![](./img/nyc_fire.jpg)]
+
+<br>
+
+<br>
+
+The Twitter account that let us know that this wasn't in fact aliens is [NYCFireWire](https://twitter.com/NYCFireWire).
+
+<br>
+
+Normally they just tweet out fires and their locations in a more or less predictable pattern:
+
+<br>
+
+<br>
+
+--
+
+`<borough> ** <some numbers> ** <address> <description of fire>`
+
+--
+
+<br>
+
+
+We can use their tweets to get some info on where and when fires happen in NYC.
+
+
+???
+
+I'll illustrate a way you might want to use `drake` with something that's close to home for us.
+
+What if we were constructing an analysis of these tweets and wanted to make sure our pipeline worked end-to-end, but didn't want to unnecessarily re-run outdated parts of it unless we needed to?
+
+
+---
+
+## The Pipeline
+
+1. Pull in tweets, either the first big batch or any new ones that show up
+
+--
+
+2. Extract addresses from the tweets (`r emo::ji("notes")` regex time `r emo::ji("notes")`)
+
+--
+
+3. Send addresses to the Google Maps API to grab their latitudes and longitudes
+
+--
+
+4. Profit
+
+--
+
+<br>
+
+All functions are defined in [`didnt_start_it.R`](https://github.com/aedobbyn/nyc-fires/blob/master/R/didnt_start_it.R), which we'll source in now.
+
+```{r, warning=FALSE, message=FALSE}
+source(here::here("R", "didnt_start_it.R")) 
+```
+
+--
+
+<br>
+
+**Caveats**
+
+This analysis relies on the [rtweet](https://github.com/mkearney/rtweet) and [ggmap](https://github.com/dkahle/ggmap) packages.
+
+To be able to run it in full you'll need a [Twitter API access token](https://rtweet.info/articles/auth.html) and [Google Maps Geocoding API key](https://developers.google.com/maps/documentation/geocoding/intro#Geocoding).
+
+---
+
+## Grabbing Tweets
+
+[`get_tweets`](https://github.com/aedobbyn/nyc-fires/blob/master/R/didnt_start_it.R)
+
+--
+
+*Main idea*: 
+
+* **Builds up a file** of the most recent set of tweets from a given account
+
+--
+
+*Details*:
+- If neither file nor `tbl` is supplied as arguments, grabs an initial *seed* batch of tweets
+- If either is supplied, checks for new tweets and grabs them if any
+- Spits out the latest to the same file
+
+```{r, include=FALSE}
+get_seed_tweets
+
+get_more_tweets
+
+get_tweets
+```
+
+<br>
+
+```{r}
+get_tweets(n_tweets_seed = 3)
+```
+
+???
+
+- `get_seed_tweets` grabs a batch of tweets *or* reads in seed tweets from a file if the file exists
+- `get_more_tweets` checks if there are new tweets and, if so, pulls in the right number of them
+- `get_tweets` runs `get_seed_tweets` if given a null `tbl` argument, otherwise runs `get_more_tweets`
+
+
+---
+
+## Grabbing Seed Tweets
+
+A closer look at just the text of the tweets:
+
+```{r}
+get_tweets(n_tweets_seed = 5) %>% 
+  select(text) %>% 
+  kable()
+```
+
+
+---
+
+## Reupping Tweets
+
+To show how `get_tweets` can start with a `tbl` of tweets and look for new ones,
+
+we'll grab 10 `seed_tweets` that are all **older** than an old tweet ID.
+
+--
+
+<br>
+
+```{r}
+old_tweet_id <- "1084948074588487680" # From Jan 14
+
+seed_tweets <- 
+  get_tweets(
+    n_tweets_seed = 10,
+    max_id = old_tweet_id
+  )
+
+nrow(seed_tweets)
+```
+
+---
+
+## Reupping Tweets
+
+Using `seed_tweets` as an input to the same `get_tweets` function,
+
+we check for new tweets, and, if there are any, pull them in.
+
+--
+
+```{r}
+full_tweets <- 
+  get_tweets(seed_tweets, 
+             n_tweets_reup = 5)
+```
+
+--
+
+<br>
+
+```{r}
+nrow(seed_tweets)
+nrow(full_tweets)
+```
+
+
+---
+
+## Getting Addresses
+
+With `pull_addresses` we parse the text of the tweet to pull out borough and street and string them together into an address.
+
+```{r, include=FALSE}
+borough_reg
+
+clean_borough
+
+pull_addresses
+```
+
+```{r}
+get_tweets(max_id = old_tweet_id) %>% 
+  pull_addresses() %>%  #<<
+  select(text, street, borough, address) %>% 
+  kable() 
+```
+
+---
+
+## Getting Lat and Long
+
+Last step of the main pipeline! 
+
+--
+
+**Reverse geocoding** = getting latitude and longitude from an address.
+
+The [`ggmap`](https://www.rdocumentation.org/packages/ggmap/versions/2.6.1/topics/geocode) package exposes this feature of the [Google Maps](https://cloud.google.com/maps-platform/) API.
+
+
+--
+
+```{r, include=FALSE}
+geo_to_list
+
+get_lat_long
+```
+
+```{r}
+get_tweets(n_tweets_seed = 5,
+           max_id = old_tweet_id) %>% 
+  pull_addresses() %>% 
+  get_lat_long() #<<
+```
+
+
+---
+
+## Downstream Analysis
+
+Later in the pipeline we'll:
+
+`count_fires`, summing up the total number of fires per `lat`-`long` combo
+
+<br>
+
+```{r}
+count_fires <- function(tbl) {
+  tbl %>%
+    drop_na() %>%
+    count(lat, long)
+}
+```
+
+<br>
+
+and plot them on a map (thanks again, `ggmap`)
+
+---
+
+## Downstream Analysis
+
+```{r}
+get_map("new york city") %>% 
+  ggmap()
+```
+
+
+---
+
+```{r, echo=FALSE, message=FALSE}
+fire_sums <-
+  read_csv(here("data", "derived", "fire_sums.csv"))
+```
+
+
+Using 3000 tweets:
+
+```{r}
+plot_fire_sums(fire_sums, output_path = NULL)
+```
+
+
+<!-- <p> -->
+<!-- <img src="./img/fire_sums_plot.png"> -->
+<!-- </p> -->
+ 
+
+---
+
+## Quick Benchmark
+
+So where does `drake` really come in handy here?
+
+--
+
+The trips to and from Twitter and Google take a while.
+
+--
+
+<br>
+
+What's the estimate of running the pipeline on a single tweet? 
+
+--
+
+```{r, warning=FALSE, message=FALSE}
+(our_bench <-
+   
+  bench::mark({
+    
+    get_tweets(n_tweets_seed = 1) %>%  # Hi Twitter
+    pull_addresses() %>%
+    get_lat_long()  # Hi Google
+    
+    }) %>% 
+   
+      as_tibble() %>% 
+      pull(median))
+```
+
+
+---
+
+## Quick Benchmark
+
+Roughly how many **minutes** would the pipeline take for 3k tweets? 
+
+(No batch speedups since we're going `rowwise` on each tweet.)
+
+<br>
+
+```{r}
+(n_mins <- 
+   (as.numeric(our_bench) # Returns this in seconds
+      * 3000)  # 3k tweets
+       / 60 # 60 seconds in a minute
+ ) 
+```
+
+
+---
+## Quick Benchmark
+
+All our downstream analyses depend on this pipeline.
+
+If we tweak some code but `drake` determines we don't need to rerun the pipeline, we will save **`r round(n_mins, digits = 0)` minutes** of our lives. 
+
+<br>
+
+![](https://media.giphy.com/media/5VMNcCxVBibZK/giphy.gif)
+
+<br>
+
+And we rest assured we have the most up-to-date data.
+
+---
+
+## Our `drake` Plan
+
+We'll set up the `drake` plan and run it for real. 
+
+An exclusive sneak peek:
+
+```{r}
+plan <-
+  drake_plan(
+    seed_fires = get_tweets(), 
+    fires = target(
+      command = get_tweets(tbl = seed_fires),
+        # Always look for new tweets
+      trigger = trigger(condition = TRUE) 
+    ),
+      # Extract addresses from tweets
+    addresses = pull_addresses(fires), 
+      # Send to Google for lat-longs
+    lat_long = get_lat_long(addresses), 
+      # Sum up n fires per lat-long combo
+    fire_sums = count_fires(lat_long), 
+
+    time_graph = graph_fire_times(lat_long),
+    plot = plot_fire_sums(fire_sums)
+  )
+```
+
+---
+
+## Questions so far?
+
+```{r}
+devtools::session_info()
+```
+
+
+---
+
+class: inverse
+
+## Live coding time!
+
+<br>
+
+The `rtweet` package also supports POSTing tweets, so we can test out whether our trigger successfully pulls in new tweet with our own
+
+--
+
+<br>
+
+## `r emo::ji("fire")` **[`burner account!`](https://twitter.com/didntstartit)** `r emo::ji("fire")`
+
+<br>
+
+--
+
+On to [part 2](https://github.com/aedobbyn/nyc-fires/blob/master/live_code.md) after this message from our sponsor.
+
+
