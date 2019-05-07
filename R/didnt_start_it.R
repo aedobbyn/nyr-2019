@@ -282,7 +282,7 @@ graph_fire_times <- function(tbl) {
 
 fire_emoji <- emoji("fire")
 
-nyc_map <- get_map("new york city")
+nyc_map <- get_map("new york city", zoom = 11)
 
 # Plot where fires occurred by lat/long combo
 plot_fire_sums <- function(tbl, city = nyc_map,

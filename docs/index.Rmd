@@ -174,6 +174,19 @@ To be able to run it in full you'll need a [Twitter API access token](https://rt
 - This way we can run the same function to look for more tweets at any time, if they exist
 
 
+---
+
+## Getting Tweets
+
+The main function we'll use is `rtweet::get_timeline`.
+
+Which returns a looooot of stuff.
+
+```{r}
+get_timeline(firewire_handle)
+```
+
+
 
 ---
 
@@ -493,17 +506,25 @@ The `ggmap::geocode` accepts a string and returns a dataframe of `lon` and `lat`
 
 ---
 
-Where's Sherlock?
+#### Where's Sherlock?
 
 ```{r}
 get_map("london", zoom = 13) %>% 
   ggmap() +
-  geom_point(data = sherlock, aes(x = lon, y = lat), color = "blue", size = 15)
+  geom_point(data = sherlock, aes(x = lon, y = lat), 
+             color = "blue", size = 10)
 ```
 
 ---
 
-![](https://media.giphy.com/media/EVjAANNjkMBKE/giphy.gif)
+
+#### Where's Sherlock?
+
+<br>
+
+<p>
+  <img src="https://media.giphy.com/media/EVjAANNjkMBKE/giphy.gif" height="300px" align="middle">
+</p>
 
 ---
 
@@ -532,11 +553,9 @@ get_lat_long <- function(tbl) {
 
 ---
 
-## Downstream Analysis
+## Counting Up
 
-Later in the pipeline we'll:
-
-`count_fires`, summing up the total number of fires per `lat`-`long` combo
+`count_fires` sums up the total number of fires per `lat`-`long` combo
 
 <br>
 
@@ -550,7 +569,7 @@ count_fires <- function(tbl) {
 
 <br>
 
-and plot them on a map (thanks again, `ggmap`)
+so we can plot them on a map (thanks again, `ggmap`)
 
 ---
 
@@ -575,7 +594,9 @@ get_map("new york city") %>%
 
 ---
 
-```{r}
+```{r plot_fire_sums}
+nyc_map <- get_map("new york city", zoom = 7)
+
 plot_fire_sums <- function(tbl, city = nyc_map,
                            output_path = 
                              here("plots", "fire_sums_plot.png"),
@@ -590,7 +611,7 @@ plot_fire_sums <- function(tbl, city = nyc_map,
       color = "red", alpha = 0.5
     )
 
-  plt <- ggmap(nyc_map) +
+  plt <- ggmap(city) +
     fire_layer +
     ggtitle("Fires were Started") +
     labs(x = "Longitude", y = "Latitude",
@@ -616,7 +637,7 @@ fire_sums <-
 ```
 
 
-Using 3000 tweets:
+Using ~3k tweets:
 
 ```{r, message=FALSE, warning=FALSE}
 plot_fire_sums(fire_sums, output_path = NULL)
@@ -653,6 +674,13 @@ plan <-
     plot = plot_fire_sums(fire_sums)
   )
 ```
+
+---
+
+```{r}
+plan
+```
+
 
 ---
 
