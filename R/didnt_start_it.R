@@ -191,20 +191,19 @@ clean_borough <- function(x) {
 
 
 pull_box_address <- function(x) {
-  x %>% 
-          str_extract("Box.+[,\\.]") %>% 
-        str_extract("\\..+?\\.") %>% 
-        str_remove_all("[,\\.]") %>% 
-        str_trim()
+  x %>%
+    str_extract("Box.+[,\\.]") %>%
+    str_extract("\\..+?\\.") %>%
+    str_remove_all("[,\\.]") %>%
+    str_trim()
 }
 
 pull_non_box_address <- function(x) {
-  x %>%  
-        str_extract("(\\*[^\\.,]*)") %>%
-        # Get rid of stuff in between asterisks
-        str_remove_all("(\\*.+\\*)") %>%
-        str_trim()
-    
+  x %>%
+    str_extract("(\\*[^\\.,]*)") %>%
+    # Get rid of stuff in between asterisks
+    str_remove_all("(\\*.+\\*)") %>%
+    str_trim()
 }
 
 
@@ -217,7 +216,7 @@ pull_addresses <- function(tbl) {
       borough = str_extract(text, "^[^\\s]*\\s") %>%
         str_remove("\\s"),
       # All text after an asterisk and before a comma or period
-      street = 
+      street =
         case_when(
           str_detect(text, "Box") ~ pull_box_address(text),
           TRUE ~ pull_non_box_address(text)
@@ -310,7 +309,10 @@ plot_fire_sums <- function(tbl, city = nyc_map,
   plt <- ggmap(nyc_map) +
     fire_layer +
     ggtitle("Fires were Started") +
-    labs(x = "longitude", y = "latitude") +
+    labs(
+      x = "Longitude", y = "Latitude",
+      size = "Number of Fires"
+    ) +
     theme_light()
 
   if (!is.null(output_path)) {

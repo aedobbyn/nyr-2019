@@ -21,3 +21,4 @@ forcats
 bindrcpp
 knitr
 kableExtra
+BiocInstaller

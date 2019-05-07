@@ -54,7 +54,7 @@ class: inverse
 
 <br>
 
-- Will use Twitter and Google Maps geocoding APIs to run a `drake` pipeline
+- Will use Twitter and Google Maps geocoding APIs to figure out when and where fires happen in NYC
 
 --
 
@@ -64,7 +64,7 @@ class: inverse
 <br>
 <br>
 
-All code and slides on [GitHub](https://github.com/aedobbyn/nyc-fires).
+All code and slides on [GitHub](https://github.com/aedobbyn/nyr-2019).
 
 
 ---
@@ -96,8 +96,6 @@ Remember the [crazy blue light](https://twitter.com/NYCFireWire/status/107847836
 
 <br>
 
-<br>
-
 The Twitter account that let us know that this wasn't in fact aliens is [NYCFireWire](https://twitter.com/NYCFireWire).
 
 <br>
@@ -106,13 +104,15 @@ Normally they just tweet out fires and their locations in a more or less predict
 
 <br>
 
-<br>
 
 --
+Before February:
 
 `<borough> ** <some numbers> ** <address> <description of fire>`
 
---
+After February:
+
+`<borough> *<type of fire>* Box <digits> <address> <description of fire>`
 
 <br>
 
@@ -132,7 +132,6 @@ What if we were constructing an analysis of these tweets and wanted to make sure
 ## The Pipeline
 
 1. Pull in tweets, either the first big batch or any new ones that show up
-- This way, we can run the script on a schedule and pull in only new tweets
 
 --
 
@@ -165,6 +164,14 @@ source(here::here("R", "didnt_start_it.R"))
 This analysis relies on the [rtweet](https://github.com/mkearney/rtweet) and [ggmap](https://github.com/dkahle/ggmap) packages.
 
 To be able to run it in full you'll need a [Twitter API access token](https://rtweet.info/articles/auth.html) and [Google Maps Geocoding API key](https://developers.google.com/maps/documentation/geocoding/intro#Geocoding).
+
+---
+
+## Grabbing Tweets
+
+**Pull in tweets, either the first big batch or any new ones that show up**
+
+- This way we can run the same function to look for more tweets at any time, if they exist
 
 
 
@@ -420,17 +427,18 @@ nrow(full_tweets)
 
 With `pull_addresses` we parse the text of the tweet to pull out borough and street and string them together into an address.
 
-```{r, include=FALSE}
+```{r}
 pull_addresses <- function(tbl) {
   tbl %>%
     mutate(
+      text = str_replace_all(text, "&amp;", "&"),
       borough = str_extract(text, "^[^\\s]*\\s") %>%
         str_remove("\\s"),
-      # All text after an asterisk and before a comma or period
-      street = str_extract(text, "(\\*[^\\.,]*)") %>%
-        # Get rid of stuff in between asterisks
-        str_remove_all("(\\*.+\\*)") %>%
-        str_trim()
+      street =
+        case_when(
+          str_detect(text, "Box") ~ pull_box_address(text),
+          TRUE ~ pull_non_box_address(text)
+        )
     ) %>%
     rowwise() %>%
     mutate(
@@ -451,6 +459,11 @@ pull_addresses <- function(tbl) {
 }
 ```
 
+
+---
+
+## Getting Addresses
+
 ```{r}
 get_tweets(max_id = old_tweet_id) %>% 
   pull_addresses() %>%  #<<
@@ -470,20 +483,50 @@ Last step of the main pipeline!
 
 The [`ggmap`](https://www.rdocumentation.org/packages/ggmap/versions/2.6.1/topics/geocode) package exposes this feature of the [Google Maps](https://cloud.google.com/maps-platform/) API.
 
+<br>
 
---
-
-```{r, include=FALSE}
-geo_to_list
-
-get_lat_long
-```
+The `ggmap::geocode` accepts a string and returns a dataframe of `lon` and `lat`.
 
 ```{r}
-get_tweets(n_tweets_seed = 5,
-           max_id = old_tweet_id) %>% 
-  pull_addresses() %>% 
-  get_lat_long() #<<
+(sherlock <- ggmap::geocode("221B Baker Street, London", messaging = FALSE))
+```
+
+---
+
+Where's Sherlock?
+
+```{r}
+get_map("london", zoom = 13) %>% 
+  ggmap() +
+  geom_point(data = sherlock, aes(x = lon, y = lat), color = "blue", size = 15)
+```
+
+---
+
+![](https://media.giphy.com/media/EVjAANNjkMBKE/giphy.gif)
+
+---
+
+So we can put that together into a function that works on a tibble.
+
+
+```{r}
+get_lat_long <- function(tbl) {
+  tbl %>%
+    mutate(
+      address =
+        case_when(
+          is.na(address) ~ "", # Gives an NA in lat and long response df
+          TRUE ~ address
+        ),
+      l_l = address %>%
+        geocode() %>%
+        list()
+    ) %>%
+    unnest() %>%
+    select(address, lat, lon, created_at, text) %>%
+    rename(long = lon)
+}
 ```
 
 
@@ -511,11 +554,57 @@ and plot them on a map (thanks again, `ggmap`)
 
 ---
 
-## Downstream Analysis
+## Counting Up
+
+```{r}
+fire_sums %>% 
+  arrange(desc(n)) %>% 
+  slice(1:10)
+```
+
+
+---
+
+## Mapping
 
 ```{r}
 get_map("new york city") %>% 
   ggmap()
+```
+
+
+---
+
+```{r}
+plot_fire_sums <- function(tbl, city = nyc_map,
+                           output_path = 
+                             here("plots", "fire_sums_plot.png"),
+                           ...) {
+  tbl <-
+    tbl %>%
+    drop_na(lat, long)
+
+  fire_layer <-
+    geom_point(
+      data = tbl, aes(long, lat, size = n),
+      color = "red", alpha = 0.5
+    )
+
+  plt <- ggmap(nyc_map) +
+    fire_layer +
+    ggtitle("Fires were Started") +
+    labs(x = "Longitude", y = "Latitude",
+         size = "Number of Fires") +
+    theme_light()
+
+  if (!is.null(output_path)) {
+    ggsave(output_path,
+      device = "png"
+    )
+  } else {
+    plt
+  }
+}
 ```
 
 
@@ -529,7 +618,7 @@ fire_sums <-
 
 Using 3000 tweets:
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 plot_fire_sums(fire_sums, output_path = NULL)
 ```
 
@@ -541,79 +630,8 @@ plot_fire_sums(fire_sums, output_path = NULL)
 
 ---
 
-## Quick Benchmark
+## How would this look in a `drake` plan?
 
-So where does `drake` really come in handy here?
-
---
-
-The trips to and from Twitter and Google take a while.
-
---
-
-<br>
-
-What's the estimate of running the pipeline on a single tweet? 
-
---
-
-```{r, warning=FALSE, message=FALSE}
-(our_bench <-
-   
-  bench::mark({
-    
-    get_tweets(n_tweets_seed = 1) %>%  # Hi Twitter
-    pull_addresses() %>%
-    get_lat_long()  # Hi Google
-    
-    }) %>% 
-   
-      as_tibble() %>% 
-      pull(median))
-```
-
-
----
-
-## Quick Benchmark
-
-Roughly how many **minutes** would the pipeline take for 3k tweets? 
-
-(No batch speedups since we're going `rowwise` on each tweet.)
-
-<br>
-
-```{r}
-(n_mins <- 
-   (as.numeric(our_bench) # Returns this in seconds
-      * 3000)  # 3k tweets
-       / 60 # 60 seconds in a minute
- ) 
-```
-
-
----
-## Quick Benchmark
-
-All our downstream analyses depend on this pipeline.
-
-If we tweak some code but `drake` determines we don't need to rerun the pipeline, we will save **`r round(n_mins, digits = 0)` minutes** of our lives. 
-
-<br>
-
-![](https://media.giphy.com/media/5VMNcCxVBibZK/giphy.gif)
-
-<br>
-
-And we rest assured we have the most up-to-date data.
-
----
-
-## Our `drake` Plan
-
-We'll set up the `drake` plan and run it for real. 
-
-An exclusive sneak peek:
 
 ```{r}
 plan <-
@@ -649,22 +667,10 @@ devtools::session_info()
 
 class: inverse
 
-## Live coding time!
-
 <br>
 
-The `rtweet` package also supports POSTing tweets, so we can test out whether our trigger successfully pulls in new tweet with our own
+## Thanks!
 
---
 
-<br>
-
-## `r emo::ji("fire")` **[`burner account!`](https://twitter.com/didntstartit)** `r emo::ji("fire")`
-
-<br>
-
---
-
-On to [part 2](https://github.com/aedobbyn/nyc-fires/blob/master/live_code.md) after this message from our sponsor.
-
+## `r emo::ji("fire")`
 
