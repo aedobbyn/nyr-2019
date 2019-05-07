@@ -19,7 +19,7 @@ output:
 ```{r setup, include=FALSE, warning=FALSE}
 library(knitr)
 library(kableExtra)
-opts_chunk$set(echo = TRUE, eval = TRUE, collapse = TRUE, cache = TRUE)
+opts_chunk$set(echo = TRUE, eval = TRUE, collapse = TRUE, cache = TRUE, message = FALSE)
 options(htmltools.dir.version = FALSE)
 options(knitr.table.format = "html")
 ```
@@ -54,12 +54,24 @@ class: inverse
 
 <br>
 
+- Was originally a talk about the `drake` package
+  - The pipeline I set up here was meant to motivate the use of `drake`
+  - Come talk to me about `drake` if you're interested!
+
 - Will use Twitter and Google Maps geocoding APIs to figure out when and where fires happen in NYC
 
 --
 
 <br>
-<br>
+
+**Caveats**
+
+This analysis relies on the [rtweet](https://github.com/mkearney/rtweet) and [ggmap](https://github.com/dkahle/ggmap) packages.
+
+To be able to run it in full you'll need a [Twitter API access token](https://rtweet.info/articles/auth.html) and [Google Maps Geocoding API key](https://developers.google.com/maps/documentation/geocoding/intro#Geocoding).
+
+--
+
 <br>
 <br>
 <br>
@@ -149,21 +161,12 @@ What if we were constructing an analysis of these tweets and wanted to make sure
 
 <br>
 
-All functions are defined in [`didnt_start_it.R`](https://github.com/aedobbyn/nyc-fires/blob/master/R/didnt_start_it.R), which we'll source in now.
+All functions are defined in [`didnt_start_it.R`](https://github.com/aedobbyn/nyr-2019/blob/master/R/didnt_start_it.R), which we'll source in now.
 
 ```{r, warning=FALSE, message=FALSE}
 source(here::here("R", "didnt_start_it.R")) 
 ```
 
---
-
-<br>
-
-**Caveats**
-
-This analysis relies on the [rtweet](https://github.com/mkearney/rtweet) and [ggmap](https://github.com/dkahle/ggmap) packages.
-
-To be able to run it in full you'll need a [Twitter API access token](https://rtweet.info/articles/auth.html) and [Google Maps Geocoding API key](https://developers.google.com/maps/documentation/geocoding/intro#Geocoding).
 
 ---
 
@@ -178,6 +181,10 @@ To be able to run it in full you'll need a [Twitter API access token](https://rt
 
 ## Getting Tweets
 
+```{r}
+firewire_handle <- "NYCFireWire"
+```
+
 The main function we'll use is `rtweet::get_timeline`.
 
 Which returns a looooot of stuff.
@@ -186,6 +193,23 @@ Which returns a looooot of stuff.
 get_timeline(firewire_handle)
 ```
 
+
+---
+
+## Getting Tweets
+
+Wowza.
+
+We'll wrap that up in a function that 
+- selects only columns we care about  
+- writes the result out to a file if we want to.
+
+<br>
+
+One of the most useful arguments to `get_timeline` for pipelining is **`max_id`**
+
+- This lets you specify the most *recent* tweet (since `max_id`s always increase as `created_at` increases) you want; all other tweets will be from before this
+- That lets you work backward
 
 
 ---
@@ -220,7 +244,7 @@ get_seed_tweets <- function(user = firewire_handle,
         user_id = as.character(user_id),
         status_id = as.character(status_id),
         created_at = # UTC by default
-        lubridate::as_datetime(created_at, tz = "America/New_York")
+          lubridate::as_datetime(created_at, tz = "America/New_York")
       ) %>%
       select(text, user_id, status_id, created_at, screen_name) %>%
       arrange(desc(created_at))
@@ -433,6 +457,66 @@ nrow(seed_tweets)
 nrow(full_tweets)
 ```
 
+---
+
+## Extracting Addresses
+
+```{r}
+pull_box_address <- function(x) {
+  x %>%
+    str_extract("Box [0-9]+.+[,\\.]") %>%
+    str_extract("\\..+?\\.") %>%
+    str_remove_all("[,\\.]") %>%
+    str_trim()
+}
+```
+
+
+```{r}
+(a_box_address <- 
+  full_tweets %>% 
+  filter(str_detect(text, "Box [0-9]+[,\\.]")) %>% 
+  slice(1) %>% 
+  pull(text))
+```
+
+
+```{r}
+a_box_address %>% 
+  pull_box_address()
+```
+
+---
+
+## Boroughs
+
+```{r}
+# Bronx will become The Bronx and Staten will become Staten Island in clean_borough()
+boroughs <- c("Brooklyn", "Bronx", "Manhattan", "Staten", "Queens")
+borough_reg <- boroughs %>%
+  str_c(collapse = "|")
+
+
+# Helper used inside pull_addresses()
+# If a tweet has a borough anywhere in it, pull it out
+clean_borough <- function(x) {
+  if (is.na(x) || !str_detect(x, borough_reg)) {
+    return(NA_character_)
+  }
+
+  # Return the borough match
+  b <- boroughs[which(str_detect(x, boroughs))][1]
+
+  if (b == "Bronx") {
+    b <- "The Bronx"
+  } else if (b == "Staten") {
+    b <- "Staten Island"
+  }
+
+  b
+}
+```
+
 
 ---
 
@@ -479,7 +563,7 @@ pull_addresses <- function(tbl) {
 
 ```{r}
 get_tweets(max_id = old_tweet_id) %>% 
-  pull_addresses() %>%  #<<
+  pull_addresses() %>%  
   select(text, street, borough, address) %>% 
   kable() 
 ```
@@ -498,20 +582,28 @@ The [`ggmap`](https://www.rdocumentation.org/packages/ggmap/versions/2.6.1/topic
 
 <br>
 
+--
+
 The `ggmap::geocode` accepts a string and returns a dataframe of `lon` and `lat`.
 
-```{r}
-(sherlock <- ggmap::geocode("221B Baker Street, London", messaging = FALSE))
+--
+
+```{r message=FALSE}
+(sherlock <- 
+   ggmap::geocode("221B Baker Street, London"))
 ```
 
 ---
 
 #### Where's Sherlock?
 
-```{r}
+--
+
+```{r message=FALSE}
 get_map("london", zoom = 13) %>% 
   ggmap() +
-  geom_point(data = sherlock, aes(x = lon, y = lat), 
+  geom_point(data = sherlock, 
+             aes(x = lon, y = lat), 
              color = "blue", size = 10)
 ```
 
@@ -548,6 +640,18 @@ get_lat_long <- function(tbl) {
     select(address, lat, lon, created_at, text) %>%
     rename(long = lon)
 }
+```
+
+
+---
+
+```{r}
+full_tweets %>% 
+  sample_n(1) %>% 
+  pull_addresses() %>% 
+  get_lat_long() %>% 
+  select(text, address, lat, long) %>% 
+  kable()
 ```
 
 
@@ -660,8 +764,8 @@ plan <-
     seed_fires = get_tweets(), 
     fires = target(
       command = get_tweets(tbl = seed_fires),
-        # Always look for new tweets
-      trigger = trigger(condition = TRUE) 
+        # Only pull if there are new tweets
+      trigger = trigger(condition = there_are_new_tweets) 
     ),
       # Extract addresses from tweets
     addresses = pull_addresses(fires), 

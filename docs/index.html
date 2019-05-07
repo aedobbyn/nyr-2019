@@ -53,12 +53,24 @@ class: inverse
 
 &lt;br&gt;
 
+- Was originally a talk about the `drake` package
+  - The pipeline I set up here was meant to motivate the use of `drake`
+  - Come talk to me about `drake` if you're interested!
+
 - Will use Twitter and Google Maps geocoding APIs to figure out when and where fires happen in NYC
 
 --
 
 &lt;br&gt;
-&lt;br&gt;
+
+**Caveats**
+
+This analysis relies on the [rtweet](https://github.com/mkearney/rtweet) and [ggmap](https://github.com/dkahle/ggmap) packages.
+
+To be able to run it in full you'll need a [Twitter API access token](https://rtweet.info/articles/auth.html) and [Google Maps Geocoding API key](https://developers.google.com/maps/documentation/geocoding/intro#Geocoding).
+
+--
+
 &lt;br&gt;
 &lt;br&gt;
 &lt;br&gt;
@@ -148,22 +160,13 @@ What if we were constructing an analysis of these tweets and wanted to make sure
 
 &lt;br&gt;
 
-All functions are defined in [`didnt_start_it.R`](https://github.com/aedobbyn/nyc-fires/blob/master/R/didnt_start_it.R), which we'll source in now.
+All functions are defined in [`didnt_start_it.R`](https://github.com/aedobbyn/nyr-2019/blob/master/R/didnt_start_it.R), which we'll source in now.
 
 
 ```r
 source(here::here("R", "didnt_start_it.R")) 
 ```
 
---
-
-&lt;br&gt;
-
-**Caveats**
-
-This analysis relies on the [rtweet](https://github.com/mkearney/rtweet) and [ggmap](https://github.com/dkahle/ggmap) packages.
-
-To be able to run it in full you'll need a [Twitter API access token](https://rtweet.info/articles/auth.html) and [Google Maps Geocoding API key](https://developers.google.com/maps/documentation/geocoding/intro#Geocoding).
 
 ---
 
@@ -178,6 +181,11 @@ To be able to run it in full you'll need a [Twitter API access token](https://rt
 
 ## Getting Tweets
 
+
+```r
+firewire_handle &lt;- "NYCFireWire"
+```
+
 The main function we'll use is `rtweet::get_timeline`.
 
 Which returns a looooot of stuff.
@@ -188,16 +196,16 @@ get_timeline(firewire_handle)
 ## # A tibble: 100 x 88
 ##    user_id status_id created_at          screen_name text  source
 ##    &lt;chr&gt;   &lt;chr&gt;     &lt;dttm&gt;              &lt;chr&gt;       &lt;chr&gt; &lt;chr&gt; 
-##  1 560024… 11256054… 2019-05-07 03:37:02 NYCFireWire Broo… thefi…
-##  2 560024… 11255194… 2019-05-06 21:55:21 NYCFireWire Quee… thefi…
-##  3 560024… 11254856… 2019-05-06 19:41:03 NYCFireWire Broo… thefi…
-##  4 560024… 11253819… 2019-05-06 12:49:00 NYCFireWire "FDN… Twitt…
-##  5 560024… 11253794… 2019-05-06 12:39:14 NYCFireWire Bron… thefi…
-##  6 560024… 11253606… 2019-05-06 11:24:17 NYCFireWire Cong… Twitt…
-##  7 560024… 11253520… 2019-05-06 10:50:16 NYCFireWire Deta… Twitt…
-##  8 560024… 11251968… 2019-05-06 00:33:27 NYCFireWire Quee… thefi…
-##  9 560024… 11251644… 2019-05-05 22:24:33 NYCFireWire Bron… thefi…
-## 10 560024… 11250150… 2019-05-05 12:31:14 NYCFireWire Bron… thefi…
+##  1 560024… 11257160… 2019-05-07 10:56:35 NYCFireWire Broo… thefi…
+##  2 560024… 11256887… 2019-05-07 09:08:12 NYCFireWire Broo… Twitt…
+##  3 560024… 11256880… 2019-05-07 09:05:19 NYCFireWire Bron… thefi…
+##  4 560024… 11256528… 2019-05-07 06:45:32 NYCFireWire Bron… thefi…
+##  5 560024… 11256470… 2019-05-07 06:22:13 NYCFireWire Broo… thefi…
+##  6 560024… 11256054… 2019-05-07 03:37:02 NYCFireWire Broo… thefi…
+##  7 560024… 11255194… 2019-05-06 21:55:21 NYCFireWire Quee… thefi…
+##  8 560024… 11254856… 2019-05-06 19:41:03 NYCFireWire Broo… thefi…
+##  9 560024… 11253819… 2019-05-06 12:49:00 NYCFireWire "FDN… Twitt…
+## 10 560024… 11253794… 2019-05-06 12:39:14 NYCFireWire Bron… thefi…
 ## # … with 90 more rows, and 82 more variables: display_text_width &lt;dbl&gt;,
 ## #   reply_to_status_id &lt;lgl&gt;, reply_to_user_id &lt;lgl&gt;,
 ## #   reply_to_screen_name &lt;lgl&gt;, is_quote &lt;lgl&gt;, is_retweet &lt;lgl&gt;,
@@ -234,6 +242,23 @@ get_timeline(firewire_handle)
 ```
 
 
+---
+
+## Getting Tweets
+
+Wowza.
+
+We'll wrap that up in a function that 
+- selects only columns we care about  
+- writes the result out to a file if we want to.
+
+&lt;br&gt;
+
+One of the most useful arguments to `get_timeline` for pipelining is **`max_id`**
+
+- This lets you specify the most *recent* tweet (since `max_id`s always increase as `created_at` increases) you want; all other tweets will be from before this
+- That lets you work backward
+
 
 ---
 
@@ -268,7 +293,7 @@ get_seed_tweets &lt;- function(user = firewire_handle,
         user_id = as.character(user_id),
         status_id = as.character(status_id),
         created_at = # UTC by default
-        lubridate::as_datetime(created_at, tz = "America/New_York")
+          lubridate::as_datetime(created_at, tz = "America/New_York")
       ) %&gt;%
       select(text, user_id, status_id, created_at, screen_name) %&gt;%
       arrange(desc(created_at))
@@ -411,9 +436,9 @@ get_tweets(n_tweets_seed = 3)
 ## # A tibble: 3 x 5
 ##   text                  user_id status_id   created_at          screen_name
 ##   &lt;chr&gt;                 &lt;chr&gt;   &lt;chr&gt;       &lt;dttm&gt;              &lt;chr&gt;      
-## 1 Brooklyn *10-60/Majo… 560024… 1125605433… 2019-05-06 23:37:02 NYCFireWire
-## 2 Queens *10-75* Box 1… 560024… 1125519444… 2019-05-06 17:55:21 NYCFireWire
-## 3 Brooklyn *10-75* Box… 560024… 1125485645… 2019-05-06 15:41:03 NYCFireWire
+## 1 Brooklyn *MVA/Overtu… 560024… 1125716049… 2019-05-07 06:56:35 NYCFireWire
+## 2 Brooklyn *10-60/Majo… 560024… 1125688773… 2019-05-07 05:08:12 NYCFireWire
+## 3 Bronx *All Hands* Bo… 560024… 1125688049… 2019-05-07 05:05:19 NYCFireWire
 ```
 
 ???
@@ -444,21 +469,19 @@ get_tweets(n_tweets_seed = 5) %&gt;%
  &lt;/thead&gt;
 &lt;tbody&gt;
   &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; Brooklyn *10-60/Major Emergency* Box 2980. 494 Avenue P, . Car into a building with collapse &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Brooklyn *MVA/Overturned* Box 0920. Sterling &amp;amp;amp; Albany Aves.. E-234 has an overturned auto, no pin. &lt;/td&gt;
   &lt;/tr&gt;
   &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; Queens *10-75* Box 1067 . 258 Beach 13th St, . Ladder Company 134 transmitting the 1075 for a shed fire in the rear of the address &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Brooklyn *10-60/Major Emergency* Box 2980. 494 Avenue P. E-330/TL-172 1st due https://t.co/EaiTcDQFgr &lt;/td&gt;
   &lt;/tr&gt;
   &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; Brooklyn *10-75* Box 2802. 1660 62nd St, . Fire in A Private Dwelling &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Bronx *All Hands* Box 3103. 2001 Southern Blvd. Fire 1st floor 6 story non-fireproof. &lt;/td&gt;
   &lt;/tr&gt;
   &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; FDNY Captain John Moschella who passed from 9/11 related cancer,  was a member of the @FDNY for 28 years, and served in Brooklyn, Queens and Manhattan until he retired last year.  He was honored Saturday for a street dedication ceremony. 
-
-#ufa #fdny #neverforget #secondsmatter https://t.co/fBjWyt7sIX &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Bronx *Subway Emergency* Box 7215. E Tremont Av/Grand Concourse E, . Bn19 has a person struck by the train, requesting power off. &lt;/td&gt;
   &lt;/tr&gt;
   &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; Bronx *All Hands* Box 3683. 641 E 224th St. Fire in a private dwelling. &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Brooklyn *All Hands* Box 2564. 1315 54th St, . Basement fire in a synagogue &lt;/td&gt;
   &lt;/tr&gt;
 &lt;/tbody&gt;
 &lt;/table&gt;
@@ -505,8 +528,6 @@ we check for new tweets, and, if there are any, pull them in.
 full_tweets &lt;- 
   get_tweets(seed_tweets, 
              n_tweets_reup = 5)
-## Searching for new tweets.
-## 5 new tweet(s) pulled.
 ```
 
 --
@@ -519,6 +540,72 @@ nrow(seed_tweets)
 ## [1] 10
 nrow(full_tweets)
 ## [1] 15
+```
+
+---
+
+## Extracting Addresses
+
+
+```r
+pull_box_address &lt;- function(x) {
+  x %&gt;%
+    str_extract("Box [0-9]+.+[,\\.]") %&gt;%
+    str_extract("\\..+?\\.") %&gt;%
+    str_remove_all("[,\\.]") %&gt;%
+    str_trim()
+}
+```
+
+
+
+```r
+(a_box_address &lt;- 
+  full_tweets %&gt;% 
+  filter(str_detect(text, "Box [0-9]+[,\\.]")) %&gt;% 
+  slice(1) %&gt;% 
+  pull(text))
+## [1] "Brooklyn *MVA/Overturned* Box 0920. Sterling &amp;amp; Albany Aves.. E-234 has an overturned auto, no pin."
+```
+
+
+
+```r
+a_box_address %&gt;% 
+  pull_box_address()
+## [1] "Sterling &amp;amp; Albany Aves"
+```
+
+---
+
+## Boroughs
+
+
+```r
+# Bronx will become The Bronx and Staten will become Staten Island in clean_borough()
+boroughs &lt;- c("Brooklyn", "Bronx", "Manhattan", "Staten", "Queens")
+borough_reg &lt;- boroughs %&gt;%
+  str_c(collapse = "|")
+
+
+# Helper used inside pull_addresses()
+# If a tweet has a borough anywhere in it, pull it out
+clean_borough &lt;- function(x) {
+  if (is.na(x) || !str_detect(x, borough_reg)) {
+    return(NA_character_)
+  }
+
+  # Return the borough match
+  b &lt;- boroughs[which(str_detect(x, boroughs))][1]
+
+  if (b == "Bronx") {
+    b &lt;- "The Bronx"
+  } else if (b == "Staten") {
+    b &lt;- "Staten Island"
+  }
+
+  b
+}
 ```
 
 
@@ -569,7 +656,7 @@ pull_addresses &lt;- function(tbl) {
 
 ```r
 get_tweets(max_id = old_tweet_id) %&gt;% 
-* pull_addresses() %&gt;%
+  pull_addresses() %&gt;%  
   select(text, street, borough, address) %&gt;% 
   kable() 
 ```
@@ -662,12 +749,16 @@ The [`ggmap`](https://www.rdocumentation.org/packages/ggmap/versions/2.6.1/topic
 
 &lt;br&gt;
 
+--
+
 The `ggmap::geocode` accepts a string and returns a dataframe of `lon` and `lat`.
+
+--
 
 
 ```r
-(sherlock &lt;- ggmap::geocode("221B Baker Street, London", messaging = FALSE))
-## Source : https://maps.googleapis.com/maps/api/geocode/json?address=221B%20Baker%20Street%2C%20London&amp;key=xxx
+(sherlock &lt;- 
+   ggmap::geocode("221B Baker Street, London"))
 ##          lon      lat
 ## 1 -0.1585557 51.52377
 ```
@@ -676,17 +767,18 @@ The `ggmap::geocode` accepts a string and returns a dataframe of `lon` and `lat`
 
 #### Where's Sherlock?
 
+--
+
 
 ```r
 get_map("london", zoom = 13) %&gt;% 
   ggmap() +
-  geom_point(data = sherlock, aes(x = lon, y = lat), 
+  geom_point(data = sherlock, 
+             aes(x = lon, y = lat), 
              color = "blue", size = 10)
-## Source : https://maps.googleapis.com/maps/api/staticmap?center=london&amp;zoom=13&amp;size=640x640&amp;scale=2&amp;maptype=terrain&amp;language=en-EN&amp;key=xxx
-## Source : https://maps.googleapis.com/maps/api/geocode/json?address=london&amp;key=xxx
 ```
 
-![](index_files/figure-html/unnamed-chunk-16-1.png)&lt;!-- --&gt;
+![](index_files/figure-html/unnamed-chunk-21-1.png)&lt;!-- --&gt;
 
 ---
 
@@ -727,6 +819,38 @@ get_lat_long &lt;- function(tbl) {
 
 ---
 
+
+```r
+full_tweets %&gt;% 
+  sample_n(1) %&gt;% 
+  pull_addresses() %&gt;% 
+  get_lat_long() %&gt;% 
+  select(text, address, lat, long) %&gt;% 
+  kable()
+```
+
+&lt;table&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; text &lt;/th&gt;
+   &lt;th style="text-align:left;"&gt; address &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; lat &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; long &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Brooklyn **77-75-0855** 899 Hancock Street Near Howard Avenue, All hands going to work for fire I’m the top floor &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 899 Hancock Street Near Howard Avenue, Brooklyn &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 40.68623 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; -73.91941 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+
+---
+
 ## Counting Up
 
 `count_fires` sums up the total number of fires per `lat`-`long` combo
@@ -758,15 +882,15 @@ fire_sums %&gt;%
 ## # A tibble: 10 x 3
 ##      lat  long     n
 ##    &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
-##  1  40.7 -73.9   174
-##  2  40.7 -73.8   152
-##  3  40.8 -73.9   114
-##  4  40.8 -74.0   111
-##  5  40.6 -74.2    27
-##  6  40.6 -74.0    10
-##  7  40.6 -73.8     7
-##  8  40.9 -73.9     7
-##  9  40.7 -73.9     6
+##  1  40.7 -73.9    55
+##  2  40.8 -74.0    25
+##  3  40.7 -73.8    22
+##  4  40.8 -73.9    17
+##  5  40.6 -74.2    14
+##  6  40.6 -73.8     7
+##  7  40.9 -73.9     7
+##  8  40.6 -73.7     6
+##  9  40.6 -73.9     6
 ## 10  40.7 -73.9     6
 ```
 
@@ -779,11 +903,9 @@ fire_sums %&gt;%
 ```r
 get_map("new york city") %&gt;% 
   ggmap()
-## Source : https://maps.googleapis.com/maps/api/staticmap?center=new%20york%20city&amp;zoom=10&amp;size=640x640&amp;scale=2&amp;maptype=terrain&amp;language=en-EN&amp;key=xxx
-## Source : https://maps.googleapis.com/maps/api/geocode/json?address=new%20york%20city&amp;key=xxx
 ```
 
-![](index_files/figure-html/unnamed-chunk-20-1.png)&lt;!-- --&gt;
+![](index_files/figure-html/unnamed-chunk-26-1.png)&lt;!-- --&gt;
 
 
 ---
@@ -791,8 +913,6 @@ get_map("new york city") %&gt;%
 
 ```r
 nyc_map &lt;- get_map("new york city", zoom = 7)
-## Source : https://maps.googleapis.com/maps/api/staticmap?center=new%20york%20city&amp;zoom=7&amp;size=640x640&amp;scale=2&amp;maptype=terrain&amp;language=en-EN&amp;key=xxx
-## Source : https://maps.googleapis.com/maps/api/geocode/json?address=new%20york%20city&amp;key=xxx
 
 plot_fire_sums &lt;- function(tbl, city = nyc_map,
                            output_path = 
@@ -838,7 +958,7 @@ Using ~3k tweets:
 plot_fire_sums(fire_sums, output_path = NULL)
 ```
 
-![](index_files/figure-html/unnamed-chunk-22-1.png)&lt;!-- --&gt;
+![](index_files/figure-html/unnamed-chunk-28-1.png)&lt;!-- --&gt;
 
 
 &lt;!-- &lt;p&gt; --&gt;
@@ -858,8 +978,8 @@ plan &lt;-
     seed_fires = get_tweets(), 
     fires = target(
       command = get_tweets(tbl = seed_fires),
-        # Always look for new tweets
-      trigger = trigger(condition = TRUE) 
+        # Only pull if there are new tweets
+      trigger = trigger(condition = there_are_new_tweets) 
     ),
       # Extract addresses from tweets
     addresses = pull_addresses(fires), 
@@ -879,15 +999,15 @@ plan &lt;-
 ```r
 plan
 ## # A tibble: 7 x 3
-##   target     command                      trigger                  
-##   &lt;chr&gt;      &lt;expr&gt;                       &lt;expr&gt;                   
-## 1 seed_fires get_tweets()                 NA                       
-## 2 fires      get_tweets(tbl = seed_fires) trigger(condition = TRUE)
-## 3 addresses  pull_addresses(fires)        NA                       
-## 4 lat_long   get_lat_long(addresses)      NA                       
-## 5 fire_sums  count_fires(lat_long)        NA                       
-## 6 time_graph graph_fire_times(lat_long)   NA                       
-## 7 plot       plot_fire_sums(fire_sums)    NA
+##   target     command                   trigger                             
+##   &lt;chr&gt;      &lt;expr&gt;                    &lt;expr&gt;                              
+## 1 seed_fires get_tweets()            … NA                                 …
+## 2 fires      get_tweets(tbl = seed_fi… trigger(condition = there_are_new_t…
+## 3 addresses  pull_addresses(fires)   … NA                                 …
+## 4 lat_long   get_lat_long(addresses) … NA                                 …
+## 5 fire_sums  count_fires(lat_long)   … NA                                 …
+## 6 time_graph graph_fire_times(lat_lon… NA                                 …
+## 7 plot       plot_fire_sums(fire_sums… NA                                 …
 ```
 
 
@@ -916,26 +1036,18 @@ devtools::session_info()
 ##  assertthat      0.2.1      2019-03-21 [2]
 ##  backports       1.1.4      2019-04-10 [1]
 ##  base64url       1.4        2018-05-14 [2]
-##  bench           1.0.1      2018-06-06 [2]
 ##  bindr           0.1.1      2018-03-13 [2]
 ##  bindrcpp      * 0.2.2      2018-03-29 [2]
 ##  BiocInstaller * 1.30.0     2018-05-01 [1]
-##  bit             1.1-14     2018-05-29 [2]
-##  bit64           0.9-7      2017-05-08 [2]
 ##  bitops          1.0-6      2013-08-17 [2]
-##  blob            1.1.1      2018-03-25 [2]
 ##  broom           0.5.1      2018-12-05 [2]
 ##  callr           3.2.0      2019-03-15 [2]
 ##  cellranger      1.1.0      2016-07-27 [2]
 ##  cli             1.1.0      2019-03-19 [2]
 ##  codetools       0.2-16     2018-12-24 [2]
 ##  colorspace      1.4-0      2019-01-13 [2]
-##  crancache       0.0.0.9000 2019-04-12 [1]
-##  cranlike        1.0.2      2018-11-26 [1]
 ##  crayon          1.3.4      2017-09-16 [1]
 ##  curl            3.3        2019-01-10 [2]
-##  DBI             1.0.0.9001 2019-04-12 [1]
-##  debugme         1.1.0      2017-10-22 [2]
 ##  desc            1.2.0      2018-05-01 [2]
 ##  devtools        2.0.2      2019-04-08 [2]
 ##  digest          0.6.18     2018-10-10 [2]
@@ -943,7 +1055,6 @@ devtools::session_info()
 ##  drake         * 7.2.0      2019-04-19 [1]
 ##  emo             0.0.0.9000 2018-07-05 [2]
 ##  emojifont     * 0.5.2      2019-01-17 [2]
-##  enc             0.2.0      2018-03-03 [2]
 ##  evaluate        0.13       2019-02-12 [2]
 ##  fansi           0.4.0      2018-12-20 [2]
 ##  forcats       * 0.4.0      2019-02-17 [2]
@@ -979,7 +1090,6 @@ devtools::session_info()
 ##  nlme            3.1-137    2018-04-07 [2]
 ##  openssl         1.3        2019-03-22 [1]
 ##  packrat         0.4.9-10   2018-08-10 [2]
-##  parsedate       1.1.3      2017-03-02 [2]
 ##  pillar          1.3.1.9000 2019-02-03 [2]
 ##  pkgbuild        1.0.3      2019-03-20 [1]
 ##  pkgconfig       2.0.2      2018-08-16 [2]
@@ -988,24 +1098,20 @@ devtools::session_info()
 ##  png             0.1-7      2013-12-03 [2]
 ##  prettyunits     1.0.2      2015-07-13 [2]
 ##  processx        3.3.0      2019-03-10 [2]
-##  profmem         0.5.0      2018-01-30 [2]
 ##  promises        1.0.1      2018-04-13 [2]
 ##  proto           1.0.0      2016-10-29 [2]
 ##  ps              1.3.0      2018-12-21 [2]
 ##  purrr         * 0.3.2      2019-03-15 [2]
 ##  R6              2.4.0      2019-02-14 [2]
-##  rappdirs        0.3.1      2016-03-28 [2]
 ##  Rcpp            1.0.1      2019-03-17 [2]
 ##  readr         * 1.3.1      2018-12-21 [2]
 ##  readxl          1.3.0.9000 2019-02-20 [2]
-##  rematch2        2.0.1      2017-06-20 [2]
 ##  remotes         2.0.4      2019-04-10 [1]
 ##  RgoogleMaps     1.4.3      2018-11-07 [2]
 ##  rjson           0.2.20     2018-06-08 [2]
 ##  rlang           0.3.4      2019-04-07 [1]
 ##  rmarkdown       1.11       2018-12-08 [2]
 ##  rprojroot       1.3-2      2018-01-03 [2]
-##  RSQLite         2.1.1      2018-05-06 [2]
 ##  rstudioapi      0.10       2019-03-19 [1]
 ##  rtweet        * 0.6.8      2018-09-28 [2]
 ##  rvest           0.3.2      2016-06-17 [2]
@@ -1017,7 +1123,6 @@ devtools::session_info()
 ##  storr           1.2.1      2018-10-18 [2]
 ##  stringi         1.4.3      2019-03-12 [2]
 ##  stringr       * 1.4.0      2019-02-10 [2]
-##  styler          1.0.2      2018-06-26 [2]
 ##  sysfonts        0.8        2018-10-11 [2]
 ##  testthat      * 2.0.1      2018-10-13 [2]
 ##  tibble        * 2.1.1      2019-03-16 [2]
@@ -1040,24 +1145,16 @@ devtools::session_info()
 ##  CRAN (R 3.5.0)                          
 ##  CRAN (R 3.5.0)                          
 ##  CRAN (R 3.5.0)                          
-##  CRAN (R 3.5.0)                          
 ##  Bioconductor                            
 ##  CRAN (R 3.5.0)                          
 ##  CRAN (R 3.5.0)                          
-##  CRAN (R 3.5.0)                          
-##  CRAN (R 3.5.0)                          
-##  CRAN (R 3.5.0)                          
 ##  CRAN (R 3.5.3)                          
 ##  CRAN (R 3.5.0)                          
 ##  CRAN (R 3.5.2)                          
 ##  CRAN (R 3.5.3)                          
 ##  CRAN (R 3.5.2)                          
-##  Github (r-lib/crancache@6a288af)        
-##  CRAN (R 3.5.0)                          
 ##  CRAN (R 3.5.0)                          
 ##  CRAN (R 3.5.2)                          
-##  Github (r-dbi/DBI@069df06)              
-##  CRAN (R 3.5.0)                          
 ##  CRAN (R 3.5.0)                          
 ##  CRAN (R 3.5.2)                          
 ##  CRAN (R 3.5.0)                          
@@ -1065,7 +1162,6 @@ devtools::session_info()
 ##  CRAN (R 3.5.2)                          
 ##  Github (hadley/emo@02a5206)             
 ##  Github (GuangchuangYu/emojifont@f7ba3ec)
-##  CRAN (R 3.5.0)                          
 ##  CRAN (R 3.5.2)                          
 ##  Github (brodieG/fansi@ab11e9c)          
 ##  CRAN (R 3.5.2)                          
@@ -1101,7 +1197,6 @@ devtools::session_info()
 ##  CRAN (R 3.5.3)                          
 ##  CRAN (R 3.5.2)                          
 ##  Github (rstudio/packrat@7d320b1)        
-##  CRAN (R 3.5.0)                          
 ##  Github (r-lib/pillar@3a54b8d)           
 ##  CRAN (R 3.5.2)                          
 ##  CRAN (R 3.5.0)                          
@@ -1113,19 +1208,15 @@ devtools::session_info()
 ##  CRAN (R 3.5.0)                          
 ##  CRAN (R 3.5.0)                          
 ##  CRAN (R 3.5.0)                          
-##  CRAN (R 3.5.0)                          
 ##  CRAN (R 3.5.2)                          
 ##  CRAN (R 3.5.2)                          
-##  CRAN (R 3.5.0)                          
 ##  CRAN (R 3.5.2)                          
 ##  CRAN (R 3.5.0)                          
 ##  Github (tidyverse/readxl@0fcfb3f)       
-##  CRAN (R 3.5.0)                          
 ##  CRAN (R 3.5.2)                          
 ##  CRAN (R 3.5.0)                          
 ##  CRAN (R 3.5.0)                          
 ##  CRAN (R 3.5.2)                          
-##  CRAN (R 3.5.0)                          
 ##  CRAN (R 3.5.0)                          
 ##  CRAN (R 3.5.0)                          
 ##  CRAN (R 3.5.2)                          
@@ -1139,7 +1230,6 @@ devtools::session_info()
 ##  CRAN (R 3.5.0)                          
 ##  CRAN (R 3.5.2)                          
 ##  CRAN (R 3.5.2)                          
-##  CRAN (R 3.5.0)                          
 ##  CRAN (R 3.5.0)                          
 ##  CRAN (R 3.5.0)                          
 ##  CRAN (R 3.5.2)                          
