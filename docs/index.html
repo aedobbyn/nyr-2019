@@ -32,11 +32,9 @@ class: inverse
 
 .left-column[
 
-**Day job**: ultimate frisbee player
+**Day job**: Data Scientist at [Earlybird Software](http://www.earlybird.co/), former co-organizer of [R-Ladies Chicago](https://rladieschicago.org/)
 
-
-**For fun**: Data Scientist at [Earlybird Software](http://www.earlybird.co/), former co-organizer of [R-Ladies Chicago](https://rladieschicago.org/)
-
+**For fun**: ultimate frisbee player
 &lt;!-- .pull-left[![](./img/pingpong.jpg)] --&gt;
 
 **GitHub**: [@aedobbyn](https://github.com/aedobbyn)
@@ -51,23 +49,11 @@ class: inverse
 
 ---
 
-## The Plan
+## This Talk
 
 &lt;br&gt;
 
-1) I'll give an intro to what `drake` is and how it works.
-
---
-
-&lt;br&gt;
-
-2) We'll switch to a [live coding Rmd](https://github.com/aedobbyn/nyc-fires/blob/master/live_code.md) which hopefully won't totally break 🤞
-
---
-
-&lt;br&gt;
-
-In that part, we'll use the Twitter and Google Maps geocoding APIs to run a `drake` pipeline.
+- Will use Twitter and Google Maps geocoding APIs to run a `drake` pipeline
 
 --
 
@@ -78,6 +64,28 @@ In that part, we'll use the Twitter and Google Maps geocoding APIs to run a `dra
 &lt;br&gt;
 
 All code and slides on [GitHub](https://github.com/aedobbyn/nyc-fires).
+
+
+---
+
+class: blue-light 
+
+&lt;!-- background-image: url("https://static01.nyt.com/images/2018/12/29/nyregion/28xp-explosion-sub-print/28xp-explosion-sub-facebookJumbo.jpg) --&gt;
+
+## Our Plan
+
+Remember the [crazy blue light](https://twitter.com/NYCFireWire/status/1078478369036165121) in NYC from late December?
+
+--
+
+&lt;p align="left" style="padding-right: 20%;"&gt;
+&lt;img src="./img/blue_light.jpg" height="350px"&gt;
+&lt;/p&gt;
+
+--
+
+😱 😱 😱
+
 
 ---
 
@@ -123,6 +131,7 @@ What if we were constructing an analysis of these tweets and wanted to make sure
 ## The Pipeline
 
 1. Pull in tweets, either the first big batch or any new ones that show up
+- This way, we can run the script on a schedule and pull in only new tweets
 
 --
 
@@ -157,6 +166,155 @@ This analysis relies on the [rtweet](https://github.com/mkearney/rtweet) and [gg
 
 To be able to run it in full you'll need a [Twitter API access token](https://rtweet.info/articles/auth.html) and [Google Maps Geocoding API key](https://developers.google.com/maps/documentation/geocoding/intro#Geocoding).
 
+
+
+---
+
+## Grabbing a Seed Batch of Tweets
+
+
+```r
+get_seed_tweets &lt;- function(user = firewire_handle,
+                            n_tweets = 50,
+                            max_id = NULL, # Max ID of the tweet
+                            input_path = NULL, # Read from a file or grab from Twitter?
+                            output_path = NULL,
+                            write_out = FALSE,
+                            verbose = TRUE) {
+  if (!is.null(input_path) &amp;&amp; file_exists(input_path)) {
+    if (verbose) message("Reading in tweets from CSV.")
+    out &lt;-
+      read_csv(input_path,
+        col_types =
+          list(
+            text = col_character(),
+            user_id = col_character(),
+            status_id = col_character(),
+            created_at = col_datetime(format = ""),
+            screen_name = col_character()
+          )
+      )
+  } else {
+    out &lt;-
+      get_timeline(user = user, n = n_tweets, max_id = max_id) %&gt;%
+      mutate(
+        user_id = as.character(user_id),
+        status_id = as.character(status_id),
+        created_at = # UTC by default
+        lubridate::as_datetime(created_at, tz = "America/New_York")
+      ) %&gt;%
+      select(text, user_id, status_id, created_at, screen_name) %&gt;%
+      arrange(desc(created_at))
+  }
+
+  if (!is.null(output_path) &amp;&amp; write_out == TRUE) {
+    write_csv(out, output_path)
+  }
+
+  out
+}
+```
+
+
+
+```r
+# Check if there are new tweets at an account
+there_are_new_tweets &lt;- function(tbl,
+                                 user = firewire_handle,
+                                 verbose = TRUE) {
+  latest_dt &lt;-
+    tbl %&gt;%
+    arrange(desc(created_at)) %&gt;%
+    slice(1) %&gt;%
+    pull(created_at)
+
+  if (verbose) message("Searching for new tweets.")
+
+  new &lt;- get_seed_tweets(user = user, n_tweets = 1)
+
+  if (max(new$created_at) &lt;= latest_dt) {
+    if (verbose) message("No new tweets to pull.")
+    FALSE
+  } else {
+    TRUE
+  }
+}
+```
+
+
+
+```r
+# Given a tbl of tweets, reup if there_are_new_tweets()
+get_more_tweets &lt;- function(tbl,
+                            user = firewire_handle,
+                            n_tweets = 20,
+                            verbose = TRUE) {
+  if (!there_are_new_tweets(tbl = tbl, user = user)) {
+    return(NULL)
+  }
+
+  new &lt;- get_seed_tweets(user = user, n_tweets = n_tweets)
+
+  out &lt;-
+    new %&gt;%
+    filter(created_at &gt; max(tbl$created_at))
+
+  if (verbose) message(glue("{nrow(out)} new tweet(s) pulled."))
+
+  out
+}
+```
+
+
+
+---
+
+## Grabbing Tweets
+
+[`get_tweets`](https://github.com/aedobbyn/nyc-fires/blob/master/R/didnt_start_it.R)
+
+
+```r
+get_tweets &lt;- function(tbl = NULL,
+                       user = firewire_handle,
+                       max_id = NULL,
+                       n_tweets_seed = 10,
+                       n_tweets_reup = 5,
+                       input_path = NULL,
+                       output_path = NULL,
+                       write_out = TRUE,
+                       verbose = TRUE) {
+  if (is.null(tbl) || is.na(tbl)) {
+    out &lt;- get_seed_tweets(
+      user = user,
+      n_tweets = n_tweets_seed,
+      input_path = input_path,
+      output_path = output_path,
+      write_out = FALSE,
+      max_id = max_id
+    )
+  } else {
+    new &lt;-
+      get_more_tweets(tbl, user = user, n_tweets = n_tweets_reup, verbose = verbose)
+
+    out &lt;-
+      tbl %&gt;%
+      bind_rows(new) %&gt;%
+      arrange(desc(created_at))
+  }
+
+  # Always write to file
+  if (!is.null(output_path) &amp;&amp; write_out == TRUE) {
+    write_csv(out, output_path)
+  }
+
+  out
+}
+```
+
+
+
+
 ---
 
 ## Grabbing Tweets
@@ -186,9 +344,9 @@ get_tweets(n_tweets_seed = 3)
 ## # A tibble: 3 x 5
 ##   text                  user_id status_id   created_at          screen_name
 ##   &lt;chr&gt;                 &lt;chr&gt;   &lt;chr&gt;       &lt;dttm&gt;              &lt;chr&gt;      
-## 1 Queens *10-75* Box 7… 560024… 1125196845… 2019-05-05 20:33:27 NYCFireWire
-## 2 Queens *10-75* Box 7… 560024… 1125196706… 2019-05-05 20:32:54 NYCFireWire
-## 3 Queens *10-75* Box 7… 560024… 1125196346… 2019-05-05 20:31:28 NYCFireWire
+## 1 "FDNY Captain John M… 560024… 1125381950… 2019-05-06 08:49:00 NYCFireWire
+## 2 Bronx *All Hands* Bo… 560024… 1125379492… 2019-05-06 08:39:14 NYCFireWire
+## 3 Congrats the Young f… 560024… 1125360631… 2019-05-06 07:24:17 NYCFireWire
 ```
 
 ???
@@ -219,19 +377,21 @@ get_tweets(n_tweets_seed = 5) %&gt;%
  &lt;/thead&gt;
 &lt;tbody&gt;
   &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; FDNY Captain John Moschella who passed from 9/11 related cancer,  was a member of the @FDNY for 28 years, and served in Brooklyn, Queens and Manhattan until he retired last year.  He was honored Saturday for a street dedication ceremony. 
+
+#ufa #fdny #neverforget #secondsmatter https://t.co/fBjWyt7sIX &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Bronx *All Hands* Box 3683. 641 E 224th St. Fire in a private dwelling. &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Congrats the Young family. Mom &amp;amp;amp; Dad are looking down smiling. https://t.co/FlahWzGLJe &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Details of last nights murder of a 3 y/o are horrific. No run that a firefighter responds to is 'routine'. We must prepare for the unexpected. #FDNY Counseling Unit (CSU), available 24/7 w/Satellite Locations in Manhattan, Ft Totten, Brentwood, SI, &amp;amp;amp; Middletown. 212-570-1693. https://t.co/lv0zkpsl5m &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
    &lt;td style="text-align:left;"&gt; Queens *10-75* Box 7515 . . 2-04 Astoria Boulevard, Battalion 49 transmitting the 10-75 for a Compactor fire in a multiple dwelling &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; Queens *10-75* Box 7515 . 30-2 Astoria Blvd, . Battalion 49 transmitting the 10-75 for a Compactor fire in a multiple dwelling &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; Queens *10-75* Box 7515. . Battalion 49 transmitting the 10-75 for a compactor fire in A Multiple Dwelling &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; Bronx *All Hands* Box 4796. 2615 Grand Concourse, . Fire on the 2nd floor Of A 7 Story Multiple Dwelling &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; Bronx *All Hands* Box 3136. 672 Oakland Pl off Belmont Ave.. Fire in a private dwelling. &lt;/td&gt;
   &lt;/tr&gt;
 &lt;/tbody&gt;
 &lt;/table&gt;
@@ -461,7 +621,7 @@ get_map("new york city") %&gt;%
 ## Source : https://maps.googleapis.com/maps/api/geocode/json?address=new%20york%20city&amp;key=xxx
 ```
 
-![](index_files/figure-html/unnamed-chunk-13-1.png)&lt;!-- --&gt;
+![](index_files/figure-html/unnamed-chunk-17-1.png)&lt;!-- --&gt;
 
 
 ---
@@ -476,7 +636,7 @@ Using 3000 tweets:
 plot_fire_sums(fire_sums, output_path = NULL)
 ```
 
-![](index_files/figure-html/unnamed-chunk-15-1.png)&lt;!-- --&gt;
+![](index_files/figure-html/unnamed-chunk-19-1.png)&lt;!-- --&gt;
 
 
 &lt;!-- &lt;p&gt; --&gt;
@@ -516,7 +676,7 @@ What's the estimate of running the pipeline on a single tweet?
    
       as_tibble() %&gt;% 
       pull(median))
-## [1] 275ms
+## [1] 450ms
 ```
 
 
@@ -537,7 +697,7 @@ Roughly how many **minutes** would the pipeline take for 3k tweets?
       * 3000)  # 3k tweets
        / 60 # 60 seconds in a minute
  ) 
-## [1] 13.74552
+## [1] 22.49309
 ```
 
 
@@ -546,7 +706,7 @@ Roughly how many **minutes** would the pipeline take for 3k tweets?
 
 All our downstream analyses depend on this pipeline.
 
-If we tweak some code but `drake` determines we don't need to rerun the pipeline, we will save **14 minutes** of our lives. 
+If we tweak some code but `drake` determines we don't need to rerun the pipeline, we will save **22 minutes** of our lives. 
 
 &lt;br&gt;
 
@@ -588,7 +748,7 @@ plan &lt;-
 
 ---
 
-## Questions so far?
+## Questions?
 
 
 ```r
@@ -603,7 +763,7 @@ devtools::session_info()
 ##  collate  en_US.UTF-8                 
 ##  ctype    en_US.UTF-8                 
 ##  tz       America/New_York            
-##  date     2019-05-05                  
+##  date     2019-05-06                  
 ## 
 ## ─ Packages ──────────────────────────────────────────────────────────────
 ##  package     * version    date       lib

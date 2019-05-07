@@ -190,18 +190,38 @@ clean_borough <- function(x) {
 }
 
 
+pull_box_address <- function(x) {
+  x %>% 
+          str_extract("Box.+[,\\.]") %>% 
+        str_extract("\\..+?\\.") %>% 
+        str_remove_all("[,\\.]") %>% 
+        str_trim()
+}
+
+pull_non_box_address <- function(x) {
+  x %>%  
+        str_extract("(\\*[^\\.,]*)") %>%
+        # Get rid of stuff in between asterisks
+        str_remove_all("(\\*.+\\*)") %>%
+        str_trim()
+    
+}
+
+
 # From the text of a tweet, pull out the borough, the street, and stick them
 # together to make the address
 pull_addresses <- function(tbl) {
   tbl %>%
     mutate(
+      text = str_replace_all(text, "&amp;", "&"),
       borough = str_extract(text, "^[^\\s]*\\s") %>%
         str_remove("\\s"),
       # All text after an asterisk and before a comma or period
-      street = str_extract(text, "(\\*[^\\.,]*)") %>%
-        # Get rid of stuff in between asterisks
-        str_remove_all("(\\*.+\\*)") %>%
-        str_trim()
+      street = 
+        case_when(
+          str_detect(text, "Box") ~ pull_box_address(text),
+          TRUE ~ pull_non_box_address(text)
+        )
     ) %>%
     rowwise() %>%
     mutate(
@@ -221,28 +241,23 @@ pull_addresses <- function(tbl) {
     select(borough, street, address, text, created_at)
 }
 
-geo_to_list <- function(inp) {
-  geocode(inp) %>%
-    rename(long = lon) %>%
-    list()
-}
-
 # Given an address extracted from a tweet, if it's not NA send it to Google
 # to grab its assocated lat and long. Add truncated versions for good measure.
 get_lat_long <- function(tbl) {
   tbl %>%
-    rowwise() %>%
     mutate(
-      l_l = ifelse(is.na(address),
-        tibble(
-          lat = NA_real_,
-          long = NA_real_
-        ) %>% list(),
-        geo_to_list(address)
-      )
+      address =
+        case_when(
+          is.na(address) ~ "", # Gives an NA in lat and long response df
+          TRUE ~ address
+        ),
+      l_l = address %>%
+        geocode() %>%
+        list()
     ) %>%
     unnest() %>%
-    select(address, lat, long, created_at, text)
+    select(address, lat, lon, created_at, text) %>%
+    rename(long = lon)
 }
 
 
@@ -274,23 +289,22 @@ nyc_map <- get_map("new york city")
 plot_fire_sums <- function(tbl, city = nyc_map,
                            use_emoji = FALSE,
                            output_path = here("plots", "fire_sums_plot.png")) {
-  
   tbl <-
     tbl %>%
     drop_na(lat, long)
-  
+
   if (use_emoji) {
-    fire_layer <- 
+    fire_layer <-
       geom_text(
         data = tbl, aes(long, lat, label = fire_emoji, size = n),
         family = "EmojiOne", color = "red"
-      ) 
+      )
   } else {
-    fire_layer <- 
+    fire_layer <-
       geom_point(
         data = tbl, aes(long, lat, size = n),
         color = "red", alpha = 0.5
-      ) 
+      )
   }
 
   plt <- ggmap(nyc_map) +
