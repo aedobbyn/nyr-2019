@@ -52,7 +52,6 @@ get_seed_tweets <- function(user = firewire_handle,
         col_types =
           list(
             text = col_character(),
-            user_id = col_character(),
             status_id = col_character(),
             created_at = col_datetime(format = ""),
             screen_name = col_character()
@@ -62,12 +61,11 @@ get_seed_tweets <- function(user = firewire_handle,
     out <-
       get_timeline(user = user, n = n_tweets, max_id = max_id) %>%
       mutate(
-        user_id = as.character(user_id),
         status_id = as.character(status_id),
         created_at = # UTC by default
         lubridate::as_datetime(created_at, tz = "America/New_York")
       ) %>%
-      select(text, user_id, status_id, created_at, screen_name) %>%
+      select(text, status_id, created_at, screen_name) %>%
       arrange(desc(created_at))
   }
 

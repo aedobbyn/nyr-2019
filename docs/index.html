@@ -354,7 +354,7 @@ get_seed_tweets &lt;- function(user = firewire_handle,
   } else {
     out &lt;-
       get_timeline(user = user, n = n_tweets, max_id = max_id) %&gt;%
-      select(text, user_id, status_id, created_at, screen_name) 
+      select(text, status_id, created_at, screen_name) 
   }
 
   # If an `output_path` exists, write out what we've got to that path.
@@ -439,32 +439,24 @@ Reup if `there_are_new_tweets()` is true.
 get_more_tweets &lt;- function(tbl,
                             user = firewire_handle,
                             n_tweets = 20,
+                            output_path = NULL,
                             write_out = TRUE,
                             verbose = TRUE) {
   if (!there_are_new_tweets(tbl = tbl, user = user)) {
     return(NULL)
   }
-  
-  out &lt;- NULL
-  
-  new &lt;- get_seed_tweets(user = user, n_tweets = n_tweets)
-  
-  this &lt;-
-      new %&gt;%
-      filter(created_at &gt; max(tbl$created_at))
-  
-  out &lt;- 
-    out %&gt;% 
-    bind_rows(this)
-  
-  while (min(this$created_at) &lt;= max(tbl$created_at))) {
 
-    if (verbose) message(glue("{nrow(out)} new tweet(s) pulled."))
-    
-    if (!is.null(output_path) &amp;&amp; write_out == TRUE) {
-      write_csv(this, output_path, append = TRUE)
-    }
-  )
+  new &lt;- get_seed_tweets(user = user, n_tweets = n_tweets)
+
+  out &lt;-
+    new %&gt;%
+    filter(created_at &gt; max(tbl$created_at))
+
+  if (verbose) message(glue("{nrow(out)} new tweet(s) pulled."))
+  
+  if (!is.null(output_path) &amp;&amp; write_out == TRUE) {
+    write_csv(out, output_path, append = TRUE)
+  }
 
   out
 }
@@ -506,10 +498,14 @@ get_tweets &lt;- function(tbl = NULL,
 
 ---
 
+Let's get some tweetssssss
+
+&lt;br&gt;
+
 
 ```r
-get_tweets(n_tweets_seed = 5)
-## # A tibble: 5 x 5
+get_tweets(n_tweets_seed = 7)
+## # A tibble: 7 x 5
 ##   text                  user_id status_id   created_at          screen_name
 ##   &lt;chr&gt;                 &lt;chr&gt;   &lt;chr&gt;       &lt;dttm&gt;              &lt;chr&gt;      
 ## 1 Staten Island *10-75… 560024… 1125902819… 2019-05-07 19:18:45 NYCFireWire
@@ -517,6 +513,8 @@ get_tweets(n_tweets_seed = 5)
 ## 3 Brooklyn *All Hands*… 560024… 1125812840… 2019-05-07 13:21:12 NYCFireWire
 ## 4 Brooklyn *All Hands*… 560024… 1125795578… 2019-05-07 12:12:36 NYCFireWire
 ## 5 Brooklyn *10-75* Box… 560024… 1125794889… 2019-05-07 12:09:52 NYCFireWire
+## 6 Brooklyn *MVA/Overtu… 560024… 1125716049… 2019-05-07 06:56:35 NYCFireWire
+## 7 Brooklyn *10-60/Majo… 560024… 1125688773… 2019-05-07 05:08:12 NYCFireWire
 ```
 
 
@@ -526,7 +524,7 @@ A closer look at just the text of the tweets:
 
 
 ```r
-get_tweets(n_tweets_seed = 5) %&gt;% 
+get_tweets(n_tweets_seed = 7) %&gt;% 
   select(text) %&gt;% 
   kable()
 ```
@@ -552,6 +550,12 @@ get_tweets(n_tweets_seed = 5) %&gt;%
   &lt;/tr&gt;
   &lt;tr&gt;
    &lt;td style="text-align:left;"&gt; Brooklyn *10-75* Box 0751. 193 Wyckoff Ave off Himrod St.. Fire on the roof 3 story frame multiple dwelling. &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Brooklyn *MVA/Overturned* Box 0920. Sterling &amp;amp;amp; Albany Aves.. E-234 has an overturned auto, no pin. &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Brooklyn *10-60/Major Emergency* Box 2980. 494 Avenue P. E-330/TL-172 1st due https://t.co/EaiTcDQFgr &lt;/td&gt;
   &lt;/tr&gt;
 &lt;/tbody&gt;
 &lt;/table&gt;
@@ -615,16 +619,13 @@ nrow(full_tweets)
 
 ## Extracting Addresses
 
+Now we need to pull addresses out of the tweets.
 
-```r
-pull_box_address &lt;- function(x) {
-  x %&gt;%
-    str_extract("Box [0-9]+.+[,\\.]") %&gt;%
-    str_extract("\\..+?\\.") %&gt;%
-    str_remove_all("[,\\.]") %&gt;%
-    str_trim()
-}
-```
+These come in two parts: borough and street.
+
+Through some regexing...
+
+
 
 
 
@@ -1034,7 +1035,21 @@ plot_fire_sums(fire_sums, output_path = NULL)
  
 ---
 
+&lt;br&gt;
+
 ![](https://media.giphy.com/media/5VMNcCxVBibZK/giphy.gif)
+
+Things that you could ask that I haven't yet:
+
+- What time of day do fires typically happen?
+
+&lt;br&gt;
+
+- On what days of the week and in which boroughs? 
+
+&lt;br&gt;
+
+- Any common keywords? (Kitchen, electrical)
 
 ---
 

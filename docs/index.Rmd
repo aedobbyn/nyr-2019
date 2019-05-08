@@ -308,7 +308,7 @@ get_seed_tweets <- function(user = firewire_handle,
   } else {
     out <-
       get_timeline(user = user, n = n_tweets, max_id = max_id) %>%
-      select(text, user_id, status_id, created_at, screen_name) 
+      select(text, status_id, created_at, screen_name) 
   }
 
   # If an `output_path` exists, write out what we've got to that path.
@@ -381,32 +381,24 @@ Reup if `there_are_new_tweets()` is true.
 get_more_tweets <- function(tbl,
                             user = firewire_handle,
                             n_tweets = 20,
+                            output_path = NULL,
                             write_out = TRUE,
                             verbose = TRUE) {
   if (!there_are_new_tweets(tbl = tbl, user = user)) {
     return(NULL)
   }
-  
-  out <- NULL
-  
-  new <- get_seed_tweets(user = user, n_tweets = n_tweets)
-  
-  this <-
-      new %>%
-      filter(created_at > max(tbl$created_at))
-  
-  out <- 
-    out %>% 
-    bind_rows(this)
-  
-  while (min(this$created_at) <= max(tbl$created_at))) {
 
-    if (verbose) message(glue("{nrow(out)} new tweet(s) pulled."))
-    
-    if (!is.null(output_path) && write_out == TRUE) {
-      write_csv(this, output_path, append = TRUE)
-    }
-  )
+  new <- get_seed_tweets(user = user, n_tweets = n_tweets)
+
+  out <-
+    new %>%
+    filter(created_at > max(tbl$created_at))
+
+  if (verbose) message(glue("{nrow(out)} new tweet(s) pulled."))
+  
+  if (!is.null(output_path) && write_out == TRUE) {
+    write_csv(out, output_path, append = TRUE)
+  }
 
   out
 }
@@ -447,8 +439,12 @@ get_tweets <- function(tbl = NULL,
 
 ---
 
+Let's get some tweetssssss
+
+<br>
+
 ```{r}
-get_tweets(n_tweets_seed = 5)
+get_tweets(n_tweets_seed = 7)
 ```
 
 
@@ -457,7 +453,7 @@ get_tweets(n_tweets_seed = 5)
 A closer look at just the text of the tweets:
 
 ```{r}
-get_tweets(n_tweets_seed = 5) %>% 
+get_tweets(n_tweets_seed = 7) %>% 
   select(text) %>% 
   kable()
 ```
@@ -515,7 +511,13 @@ nrow(full_tweets)
 
 ## Extracting Addresses
 
-```{r}
+Now we need to pull addresses out of the tweets.
+
+These come in two parts: borough and street.
+
+Through some regexing...
+
+```{r, echo=FALSE}
 pull_box_address <- function(x) {
   x %>%
     str_extract("Box [0-9]+.+[,\\.]") %>%
@@ -803,7 +805,21 @@ plot_fire_sums(fire_sums, output_path = NULL)
  
 ---
 
+<br>
+
 ![](https://media.giphy.com/media/5VMNcCxVBibZK/giphy.gif)
+
+Things that you could ask that I haven't yet:
+
+- What time of day do fires typically happen?
+
+<br>
+
+- On what days of the week and in which boroughs? 
+
+<br>
+
+- Any common keywords? (Kitchen, electrical)
 
 ---
 
