@@ -750,11 +750,13 @@ plot_fire_sums(fire_sums, output_path = NULL)
 
 --
 
-5pm and midnight
+Evening (5pm through midnight)
 
 --
 
-- On what days of the week and in which boroughs? 
+- On what days of the week are fires most common?
+
+Monday through Wednesday
 
 --
 

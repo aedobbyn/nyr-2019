@@ -4,7 +4,6 @@ source(here::here("R", "didnt_start_it.R"))
 addresses <- read_csv(here("data", "derived", "addresses.csv"))
 lat_long <- read_csv(here("data", "derived", "lat_long.csv"))
 
-
 # Fires by borough
 fires_by_borough <- 
   addresses %>% 
@@ -70,10 +69,6 @@ dat %>%
 
 
 
-
-addresses %>% 
-  drop_na(addresses) %>% 
-  
 
 
 
