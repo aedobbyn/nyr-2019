@@ -19,9 +19,12 @@ output:
 ```{r setup, include=FALSE, warning=FALSE}
 library(knitr)
 library(kableExtra)
-opts_chunk$set(echo = TRUE, eval = TRUE, collapse = TRUE, cache = FALSE, message = FALSE)
+opts_chunk$set(echo = TRUE, eval = TRUE, collapse = TRUE, cache = TRUE, message = FALSE)
 options(htmltools.dir.version = FALSE)
 options(knitr.table.format = "html")
+
+fire_sums <-
+  read_csv(here("data", "derived", "fire_sums.csv"))
 ```
 
 
@@ -223,6 +226,17 @@ Which returns a looooot of stuff.
 get_timeline("NYCFireWire")
 ```
 
+---
+
+## Getting Tweets
+
+The main function we'll use is `rtweet::get_timeline`.
+
+Which returns a looooot of stuff.
+
+<br>
+
+![](./img/jackjack.jpg)
 
 ---
 
@@ -253,16 +267,24 @@ We'll wrap that up in a function that:
 
 ## Grabbing Tweets
 
+<br>
 
 - `get_seed_tweets` grabs a batch of tweets *or* reads in seed tweets from a file if the file exists
+
+--
 
 <br>
 
 - `get_more_tweets` checks if there are new tweets and, if so, pulls in the right number of them
 
+--
+
 <br>
 
-- `get_tweets` runs `get_seed_tweets` if given a null `tbl` argument, otherwise runs `get_more_tweets`
+- `get_tweets` 
+  - If *not* passed a dataframe: runs `get_seed_tweets` 
+  - If passed a dataframe: runs `get_more_tweets`
+  
 
 ???
 
@@ -271,8 +293,6 @@ We'll wrap that up in a function that:
 - Spits out the latest to the same file
 
 ---
-
-## Grabbing a Seed Batch of Tweets
 
 A simplified version of `get_seed_tweets`:
 
@@ -297,6 +317,27 @@ get_seed_tweets <- function(user = firewire_handle,
   }
   out
 }
+```
+
+
+
+---
+
+
+```{r}
+old_tweet_id <- "1084948074588487680" # From Jan 14
+```
+
+`status_id` is useful because we can supply a `max_id` to get only tweets older than that ID `r emo::ji("thumbsup")`
+
+<br>
+
+--
+
+```{r}
+get_seed_tweets(n_tweets = 5,
+             max_id = old_tweet_id) %>% #<<
+  select(status_id, created_at)
 ```
 
 
@@ -340,18 +381,32 @@ Reup if `there_are_new_tweets()` is true.
 get_more_tweets <- function(tbl,
                             user = firewire_handle,
                             n_tweets = 20,
+                            write_out = TRUE,
                             verbose = TRUE) {
   if (!there_are_new_tweets(tbl = tbl, user = user)) {
     return(NULL)
   }
-
+  
+  out <- NULL
+  
   new <- get_seed_tweets(user = user, n_tweets = n_tweets)
+  
+  this <-
+      new %>%
+      filter(created_at > max(tbl$created_at))
+  
+  out <- 
+    out %>% 
+    bind_rows(this)
+  
+  while (min(this$created_at) <= max(tbl$created_at))) {
 
-  out <-
-    new %>%
-    filter(created_at > max(tbl$created_at))
-
-  if (verbose) message(glue("{nrow(out)} new tweet(s) pulled."))
+    if (verbose) message(glue("{nrow(out)} new tweet(s) pulled."))
+    
+    if (!is.null(output_path) && write_out == TRUE) {
+      write_csv(this, output_path, append = TRUE)
+    }
+  )
 
   out
 }
@@ -376,19 +431,13 @@ get_tweets <- function(tbl = NULL,
   if (is.null(tbl)) {
     out <- get_seed_tweets(n_tweets = n_tweets_seed, ...)
   } else {
-    # If there are new tweets since our most recent, get them
     new <-
       get_more_tweets(n_tweets = n_tweets_reup, ...)
 
-    # And append them
     out <-
       tbl %>%
       bind_rows(new) %>%
       arrange(desc(created_at))
-  }
-
-  if (!is.null(output_path) && write_out == TRUE) {
-    write_csv(out, output_path)
   }
 
   out
@@ -428,12 +477,10 @@ we'll grab 10 `seed_tweets` that are all **older** than an old tweet ID.
 <br>
 
 ```{r}
-old_tweet_id <- "1084948074588487680" # From Jan 14
-
 seed_tweets <- 
   get_tweets(
     n_tweets_seed = 10,
-    max_id = old_tweet_id
+    max_id = old_tweet_id # Old tweet!
   )
 
 nrow(seed_tweets)
@@ -568,7 +615,7 @@ pull_addresses <- function(tbl) {
 
 ```{r}
 get_tweets(max_id = old_tweet_id) %>% 
-  pull_addresses() %>%  
+  pull_addresses() %>%   #<<
   select(text, street, borough, address) %>% 
   kable() 
 ```
@@ -611,6 +658,7 @@ get_map("london", zoom = 13) %>%
              aes(x = lon, y = lat), 
              color = "blue", size = 10)
 ```
+
 
 ## `r emo::ji("wave")`
 
@@ -742,12 +790,6 @@ plot_fire_sums <- function(tbl, city = nyc_map,
 
 ---
 
-```{r, echo=FALSE, message=FALSE}
-fire_sums <-
-  read_csv(here("data", "derived", "fire_sums.csv"))
-```
-
-
 Using ~3k tweets:
 
 ```{r, message=FALSE, warning=FALSE}
@@ -765,8 +807,9 @@ plot_fire_sums(fire_sums, output_path = NULL)
 
 ---
 
-## How would this look in a `drake` plan?
+### How would this look in a `drake` plan?
 
+<br>
 
 ```{r}
 plan <-
@@ -788,25 +831,12 @@ plan <-
 
 ---
 
+### How would this look in a `drake` plan?
+
+<br>
+
 ```{r}
 plan
-```
-
----
-
-```{r}
-r_make(plan)
-
-loadd(fire_sums)
-```
-
-
----
-
-## Questions?
-
-```{r}
-devtools::session_info()
 ```
 
 
@@ -818,6 +848,4 @@ class: inverse
 
 ## Thanks!
 
-
-## `r emo::ji("fire")`
 
