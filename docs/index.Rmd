@@ -19,7 +19,7 @@ output:
 ```{r setup, include=FALSE, warning=FALSE}
 library(knitr)
 library(kableExtra)
-opts_chunk$set(echo = TRUE, eval = TRUE, collapse = TRUE, cache = FALSE, message = FALSE)
+opts_chunk$set(echo = TRUE, eval = TRUE, collapse = TRUE, cache = TRUE, message = FALSE)
 options(htmltools.dir.version = FALSE)
 options(knitr.table.format = "html")
 
@@ -91,7 +91,7 @@ To be able to run it in full you'll need a [Twitter API access token](https://rt
 <br>
 <br>
 
-All code and slides on [GitHub](https://github.com/aedobbyn/nyr-2019).
+All code, slides, and data on [GitHub](https://github.com/aedobbyn/nyr-2019). Use for whatever you like!
 
 
 ---
@@ -739,22 +739,13 @@ plot_fire_sums(fire_sums, output_path = NULL)
 
 --
 
-**Things that you could ask**
-
-(Data is on [GitHub](https://github.com/aedobbyn/nyr-2019/tree/master/data)!)
-
-<br>
---
-
-- What time of day do fires typically happen?
+** `r emo::ji("high_voltage")` Fire trivia lighting round! `r emo::ji("high_voltage")`**
 
 --
 
-Evening (5pm through midnight)
+On what days of the week are fires most common?
 
 --
-
-- On what days of the week are fires most common?
 
 Monday through Wednesday
 
@@ -762,18 +753,30 @@ Monday through Wednesday
 
 Which borough has the most fires?
 
+--
+
 Brooklyn
 
 --
 
-Which borough has the most fires, controlling for population?
-
-Staten Island
+Which borough has the most fires per capita?
 
 --
 
-- Any common keywords? (Kitchen, electrical)
+Staten Island
 
+
+---
+
+What time of day do fires typically happen?
+
+--
+
+(This one's easier to show)
+
+--
+
+<img src="./img/fires_by_hour.png" align="left">
 
 
 ---

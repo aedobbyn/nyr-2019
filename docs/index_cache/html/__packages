@@ -22,3 +22,5 @@ bindrcpp
 knitr
 kableExtra
 BiocInstaller
+xml2
+rvest

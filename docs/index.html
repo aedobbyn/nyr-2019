@@ -87,7 +87,7 @@ To be able to run it in full you'll need a [Twitter API access token](https://rt
 &lt;br&gt;
 &lt;br&gt;
 
-All code and slides on [GitHub](https://github.com/aedobbyn/nyr-2019).
+All code, slides, and data on [GitHub](https://github.com/aedobbyn/nyr-2019). Use for whatever you like!
 
 
 ---
@@ -225,16 +225,16 @@ get_timeline("NYCFireWire")
 ## # A tibble: 100 x 88
 ##    user_id status_id created_at          screen_name text  source
 ##    &lt;chr&gt;   &lt;chr&gt;     &lt;dttm&gt;              &lt;chr&gt;       &lt;chr&gt; &lt;chr&gt; 
-##  1 560024… 11260014… 2019-05-08 05:50:33 NYCFireWire Manh… thefi…
-##  2 560024… 11259028… 2019-05-07 23:18:45 NYCFireWire Stat… thefi…
-##  3 560024… 11258382… 2019-05-07 19:02:08 NYCFireWire Bron… thefi…
-##  4 560024… 11258128… 2019-05-07 17:21:12 NYCFireWire Broo… thefi…
-##  5 560024… 11257955… 2019-05-07 16:12:36 NYCFireWire Broo… thefi…
-##  6 560024… 11257948… 2019-05-07 16:09:52 NYCFireWire Broo… thefi…
-##  7 560024… 11257160… 2019-05-07 10:56:35 NYCFireWire Broo… thefi…
-##  8 560024… 11256887… 2019-05-07 09:08:12 NYCFireWire Broo… Twitt…
-##  9 560024… 11256880… 2019-05-07 09:05:19 NYCFireWire Bron… thefi…
-## 10 560024… 11256528… 2019-05-07 06:45:32 NYCFireWire Bron… thefi…
+##  1 560024… 11259028… 2019-05-07 23:18:45 NYCFireWire Stat… thefi…
+##  2 560024… 11258382… 2019-05-07 19:02:08 NYCFireWire Bron… thefi…
+##  3 560024… 11258128… 2019-05-07 17:21:12 NYCFireWire Broo… thefi…
+##  4 560024… 11257955… 2019-05-07 16:12:36 NYCFireWire Broo… thefi…
+##  5 560024… 11257948… 2019-05-07 16:09:52 NYCFireWire Broo… thefi…
+##  6 560024… 11257160… 2019-05-07 10:56:35 NYCFireWire Broo… thefi…
+##  7 560024… 11256887… 2019-05-07 09:08:12 NYCFireWire Broo… Twitt…
+##  8 560024… 11256880… 2019-05-07 09:05:19 NYCFireWire Bron… thefi…
+##  9 560024… 11256528… 2019-05-07 06:45:32 NYCFireWire Bron… thefi…
+## 10 560024… 11256470… 2019-05-07 06:22:13 NYCFireWire Broo… thefi…
 ## # … with 90 more rows, and 82 more variables: display_text_width &lt;dbl&gt;,
 ## #   reply_to_status_id &lt;lgl&gt;, reply_to_user_id &lt;lgl&gt;,
 ## #   reply_to_screen_name &lt;lgl&gt;, is_quote &lt;lgl&gt;, is_retweet &lt;lgl&gt;,
@@ -504,24 +504,24 @@ Let's get some tweetssssss
 
 ```r
 get_tweets(n_tweets_seed = 15)
-## # A tibble: 15 x 4
-##    text                        status_id    created_at          screen_name
-##    &lt;chr&gt;                       &lt;chr&gt;        &lt;dttm&gt;              &lt;chr&gt;      
-##  1 Manhattan *All Hands* Box … 11260014219… 2019-05-08 01:50:33 NYCFireWire
-##  2 Staten Island *10-75* Box … 11259028192… 2019-05-07 19:18:45 NYCFireWire
-##  3 Bronx *All Hands* Box 3314… 11258382434… 2019-05-07 15:02:08 NYCFireWire
-##  4 Brooklyn *All Hands* Box 1… 11258128402… 2019-05-07 13:21:12 NYCFireWire
-##  5 Brooklyn *All Hands* Box 0… 11257955784… 2019-05-07 12:12:36 NYCFireWire
-##  6 Brooklyn *10-75* Box 0751.… 11257948897… 2019-05-07 12:09:52 NYCFireWire
-##  7 Brooklyn *MVA/Overturned* … 11257160497… 2019-05-07 06:56:35 NYCFireWire
-##  8 Brooklyn *10-60/Major Emer… 11256887735… 2019-05-07 05:08:12 NYCFireWire
-##  9 Bronx *All Hands* Box 3103… 11256880491… 2019-05-07 05:05:19 NYCFireWire
-## 10 Bronx *Subway Emergency* B… 11256528705… 2019-05-07 02:45:32 NYCFireWire
-## 11 Brooklyn *All Hands* Box 2… 11256470026… 2019-05-07 02:22:13 NYCFireWire
-## 12 Brooklyn *10-60/Major Emer… 11256054334… 2019-05-06 23:37:02 NYCFireWire
-## 13 Queens *10-75* Box 1067 . … 11255194444… 2019-05-06 17:55:21 NYCFireWire
-## 14 Brooklyn *10-75* Box 2802.… 11254856452… 2019-05-06 15:41:03 NYCFireWire
-## 15 "FDNY Captain John Moschel… 11253819505… 2019-05-06 08:49:00 NYCFireWire
+## # A tibble: 15 x 5
+##    text                 user_id status_id   created_at          screen_name
+##    &lt;chr&gt;                &lt;chr&gt;   &lt;chr&gt;       &lt;dttm&gt;              &lt;chr&gt;      
+##  1 Manhattan *All Hand… 560024… 1126001421… 2019-05-08 01:50:33 NYCFireWire
+##  2 Staten Island *10-7… 560024… 1125902819… 2019-05-07 19:18:45 NYCFireWire
+##  3 Bronx *All Hands* B… 560024… 1125838243… 2019-05-07 15:02:08 NYCFireWire
+##  4 Brooklyn *All Hands… 560024… 1125812840… 2019-05-07 13:21:12 NYCFireWire
+##  5 Brooklyn *All Hands… 560024… 1125795578… 2019-05-07 12:12:36 NYCFireWire
+##  6 Brooklyn *10-75* Bo… 560024… 1125794889… 2019-05-07 12:09:52 NYCFireWire
+##  7 Brooklyn *MVA/Overt… 560024… 1125716049… 2019-05-07 06:56:35 NYCFireWire
+##  8 Brooklyn *10-60/Maj… 560024… 1125688773… 2019-05-07 05:08:12 NYCFireWire
+##  9 Bronx *All Hands* B… 560024… 1125688049… 2019-05-07 05:05:19 NYCFireWire
+## 10 Bronx *Subway Emerg… 560024… 1125652870… 2019-05-07 02:45:32 NYCFireWire
+## 11 Brooklyn *All Hands… 560024… 1125647002… 2019-05-07 02:22:13 NYCFireWire
+## 12 Brooklyn *10-60/Maj… 560024… 1125605433… 2019-05-06 23:37:02 NYCFireWire
+## 13 Queens *10-75* Box … 560024… 1125519444… 2019-05-06 17:55:21 NYCFireWire
+## 14 Brooklyn *10-75* Bo… 560024… 1125485645… 2019-05-06 15:41:03 NYCFireWire
+## 15 "FDNY Captain John … 560024… 1125381950… 2019-05-06 08:49:00 NYCFireWire
 ```
 
 
@@ -887,10 +887,10 @@ full_tweets %&gt;%
  &lt;/thead&gt;
 &lt;tbody&gt;
   &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; Queens 99-75-6810 111-15 227 St BC-54 using all hands for a fire in a pvt dwelling &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; Queens &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 40.72822 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; -73.79485 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Brooklyn **77-75-0855** 899 Hancock Street Near Howard Avenue, All hands going to work for fire I’m the top floor &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 899 Hancock Street Near Howard Avenue, Brooklyn &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 40.68623 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; -73.91941 &lt;/td&gt;
   &lt;/tr&gt;
 &lt;/tbody&gt;
 &lt;/table&gt;
@@ -991,22 +991,13 @@ plot_fire_sums(fire_sums, output_path = NULL)
 
 --
 
-**Things that you could ask**
-
-(Data is on [GitHub](https://github.com/aedobbyn/nyr-2019/tree/master/data)!)
-
-&lt;br&gt;
---
-
-- What time of day do fires typically happen?
+** ⚡ Fire trivia lighting round! ⚡**
 
 --
 
-Evening (5pm through midnight)
+On what days of the week are fires most common?
 
 --
-
-- On what days of the week are fires most common?
 
 Monday through Wednesday
 
@@ -1014,18 +1005,30 @@ Monday through Wednesday
 
 Which borough has the most fires?
 
+--
+
 Brooklyn
 
 --
 
-Which borough has the most fires, controlling for population?
-
-Staten Island
+Which borough has the most fires per capita?
 
 --
 
-- Any common keywords? (Kitchen, electrical)
+Staten Island
 
+
+---
+
+What time of day do fires typically happen?
+
+--
+
+(This one's easier to show)
+
+--
+
+&lt;img src="./img/fires_by_hour.png" align="left"&gt;
 
 
 ---
