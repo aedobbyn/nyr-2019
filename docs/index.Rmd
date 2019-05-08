@@ -52,11 +52,23 @@ class: inverse
 
 ## This Talk
 
+
+- Was originally a talk about the [`drake`](https://github.com/ropensci/drake) package
+
+--
+
+<img src="./img/happy_drake.jpg" height="200" align="right">
+
+
 <br>
 
-- Was originally a talk about the `drake` package
-  - The pipeline I set up here was meant to motivate the use of `drake`
-  - Come talk to me about `drake` if you're interested!
+- `drake` is a workflow management package for data pipelines (come talk to me about it!)
+
+--
+
+<br>
+
+#### The Pipeline
 
 - Will use Twitter and Google Maps geocoding APIs to figure out when and where fires happen in NYC
 
@@ -85,7 +97,7 @@ class: blue-light
 
 <!-- background-image: url("https://static01.nyt.com/images/2018/12/29/nyregion/28xp-explosion-sub-print/28xp-explosion-sub-facebookJumbo.jpg) -->
 
-## Our Plan
+## Why Fires?
 
 Remember the [crazy blue light](https://twitter.com/NYCFireWire/status/1078478369036165121) in NYC from late December?
 
@@ -101,8 +113,6 @@ Remember the [crazy blue light](https://twitter.com/NYCFireWire/status/107847836
 
 
 ---
-
-## Our Plan
 
 .pull-right[![](./img/nyc_fire.jpg)]
 
@@ -170,27 +180,47 @@ source(here::here("R", "didnt_start_it.R"))
 
 ---
 
-## Grabbing Tweets
+### Sneak Peek
 
-**Pull in tweets, either the first big batch or any new ones that show up**
+(Sans `drake`)
 
-- This way we can run the same function to look for more tweets at any time, if they exist
+```{r eval=FALSE}
+# Get tweets
+lots_o_fires <-
+  get_tweets(
+    n_tweets_seed = 3000,
+    output_path = here("data", "raw", "lots_o_fires.csv"),
+    write_out = TRUE
+  )
+
+# Pull out addresses
+addresses <-
+  pull_addresses(lots_o_fires)
+
+# Geocode
+lat_long <-
+  get_lat_long(addresses)
+
+# Sum up n fires by lat-long combo
+fire_sums <-
+  lat_long %>%
+  count_fires()
+```
+
 
 
 ---
 
 ## Getting Tweets
 
-```{r}
-firewire_handle <- "NYCFireWire"
-```
-
 The main function we'll use is `rtweet::get_timeline`.
+
+--
 
 Which returns a looooot of stuff.
 
 ```{r}
-get_timeline(firewire_handle)
+get_timeline("NYCFireWire")
 ```
 
 
@@ -202,158 +232,68 @@ Wowza.
 
 We'll wrap that up in a function that 
 - selects only columns we care about  
-- writes the result out to a file if we want to.
+- writes the result out to a file 
+- lets us grab new tweets as they come in
 
 <br>
 
 One of the most useful arguments to `get_timeline` for pipelining is **`max_id`**
 
-- This lets you specify the most *recent* tweet (since `max_id`s always increase as `created_at` increases) you want; all other tweets will be from before this
-- That lets you work backward
+---
+
+
+```{r}
+?get_timeline
+```
+
+- This lets you specify the most *recent* tweet you want; all other tweets will be older
+
+
+
+<br>
+
+- We can use this to 
+  - get older and older batches of tweets
+  - get only the most recent ones
 
 
 ---
 
 ## Grabbing a Seed Batch of Tweets
 
-```{r}
-get_seed_tweets <- function(user = firewire_handle,
-                            n_tweets = 50,
-                            max_id = NULL, # Max ID of the tweet
-                            input_path = NULL, # Read from a file or grab from Twitter?
-                            output_path = NULL,
-                            write_out = FALSE,
-                            verbose = TRUE) {
+A simplified version of `get_seed_tweets`:
+
+```{r eval=FALSE}
+get_seed_tweets <- function(user = firewire_handle, 
+                            n_tweets = 50, max_id = NULL, 
+                            input_path = NULL, output_path = NULL, 
+                            write_out = FALSE) {
+  # If an `input_path` exists, read in from there instead of grabbing tweets.
   if (!is.null(input_path) && file_exists(input_path)) {
-    if (verbose) message("Reading in tweets from CSV.")
     out <-
-      read_csv(input_path,
-        col_types =
-          list(
-            text = col_character(),
-            user_id = col_character(),
-            status_id = col_character(),
-            created_at = col_datetime(format = ""),
-            screen_name = col_character()
-          )
-      )
+      read_csv(input_path)
   } else {
     out <-
       get_timeline(user = user, n = n_tweets, max_id = max_id) %>%
-      mutate(
-        user_id = as.character(user_id),
-        status_id = as.character(status_id),
-        created_at = # UTC by default
-          lubridate::as_datetime(created_at, tz = "America/New_York")
-      ) %>%
-      select(text, user_id, status_id, created_at, screen_name) %>%
-      arrange(desc(created_at))
+      select(text, user_id, status_id, created_at, screen_name) 
   }
 
+  # If an `output_path` exists, write out what we've got to that path.
   if (!is.null(output_path) && write_out == TRUE) {
     write_csv(out, output_path)
   }
-
   out
 }
 ```
-
-
-```{r}
-# Check if there are new tweets at an account
-there_are_new_tweets <- function(tbl,
-                                 user = firewire_handle,
-                                 verbose = TRUE) {
-  latest_dt <-
-    tbl %>%
-    arrange(desc(created_at)) %>%
-    slice(1) %>%
-    pull(created_at)
-
-  if (verbose) message("Searching for new tweets.")
-
-  new <- get_seed_tweets(user = user, n_tweets = 1)
-
-  if (max(new$created_at) <= latest_dt) {
-    if (verbose) message("No new tweets to pull.")
-    FALSE
-  } else {
-    TRUE
-  }
-}
-```
-
-
-```{r}
-# Given a tbl of tweets, reup if there_are_new_tweets()
-get_more_tweets <- function(tbl,
-                            user = firewire_handle,
-                            n_tweets = 20,
-                            verbose = TRUE) {
-  if (!there_are_new_tweets(tbl = tbl, user = user)) {
-    return(NULL)
-  }
-
-  new <- get_seed_tweets(user = user, n_tweets = n_tweets)
-
-  out <-
-    new %>%
-    filter(created_at > max(tbl$created_at))
-
-  if (verbose) message(glue("{nrow(out)} new tweet(s) pulled."))
-
-  out
-}
-```
-
 
 
 ---
 
 ## Grabbing Tweets
 
-[`get_tweets`](https://github.com/aedobbyn/nyc-fires/blob/master/R/didnt_start_it.R)
+**Pull in tweets, either the first big batch or any new ones that show up**
 
-```{r}
-get_tweets <- function(tbl = NULL,
-                       user = firewire_handle,
-                       max_id = NULL,
-                       n_tweets_seed = 10,
-                       n_tweets_reup = 5,
-                       input_path = NULL,
-                       output_path = NULL,
-                       write_out = TRUE,
-                       verbose = TRUE) {
-  if (is.null(tbl) || is.na(tbl)) {
-    out <- get_seed_tweets(
-      user = user,
-      n_tweets = n_tweets_seed,
-      input_path = input_path,
-      output_path = output_path,
-      write_out = FALSE,
-      max_id = max_id
-    )
-  } else {
-    new <-
-      get_more_tweets(tbl, user = user, n_tweets = n_tweets_reup, verbose = verbose)
-
-    out <-
-      tbl %>%
-      bind_rows(new) %>%
-      arrange(desc(created_at))
-  }
-
-  # Always write to file
-  if (!is.null(output_path) && write_out == TRUE) {
-    write_csv(out, output_path)
-  }
-
-  out
-}
-```
-
-
-
+- This way we can run the same function to look for more tweets at any time, if they exist
 
 ---
 
@@ -373,14 +313,6 @@ get_tweets <- function(tbl = NULL,
 - If neither file nor `tbl` is supplied as arguments, grabs an initial *seed* batch of tweets
 - If either is supplied, checks for new tweets and grabs them if any
 - Spits out the latest to the same file
-
-```{r, include=FALSE}
-get_seed_tweets
-
-get_more_tweets
-
-get_tweets
-```
 
 <br>
 
@@ -406,6 +338,104 @@ get_tweets(n_tweets_seed = 5) %>%
   select(text) %>% 
   kable()
 ```
+
+
+
+---
+
+## Reupping Tweets
+
+Check if there are new tweets at an account:
+
+```{r eval=FALSE}
+there_are_new_tweets <- function(tbl,
+                                 user = firewire_handle,
+                                 verbose = TRUE) {
+  latest_dt <-
+    tbl %>%
+    arrange(desc(created_at)) %>%
+    slice(1) %>%
+    pull(created_at)
+
+  if (verbose) message("Searching for new tweets.")
+
+  new <- get_seed_tweets(user = user, n_tweets = 1)
+
+  if (max(new$created_at) <= latest_dt) {
+    if (verbose) message("No new tweets to pull.")
+    FALSE
+  } else {
+    TRUE
+  }
+}
+```
+
+---
+
+## Reupping Tweets
+
+Reup if `there_are_new_tweets()` is true.
+
+```{r eval=FALSE}
+get_more_tweets <- function(tbl,
+                            user = firewire_handle,
+                            n_tweets = 20,
+                            verbose = TRUE) {
+  if (!there_are_new_tweets(tbl = tbl, user = user)) {
+    return(NULL)
+  }
+
+  new <- get_seed_tweets(user = user, n_tweets = n_tweets)
+
+  out <-
+    new %>%
+    filter(created_at > max(tbl$created_at))
+
+  if (verbose) message(glue("{nrow(out)} new tweet(s) pulled."))
+
+  out
+}
+```
+
+
+
+---
+
+All together now:
+
+```{r eval=FALSE}
+get_tweets <- function(tbl = NULL,
+                       user = firewire_handle,
+                       max_id = NULL,
+                       n_tweets_seed = 10,
+                       n_tweets_reup = 5,
+                       input_path = NULL,
+                       output_path = NULL,
+                       write_out = TRUE,
+                       verbose = TRUE, ...) {
+  if (is.null(tbl)) {
+    out <- get_seed_tweets(n_tweets = n_tweets_seed, ...)
+  } else {
+    # If there are new tweets since our most recent, get them
+    new <-
+      get_more_tweets(n_tweets = n_tweets_reup, ...)
+
+    # And append them
+    out <-
+      tbl %>%
+      bind_rows(new) %>%
+      arrange(desc(created_at))
+  }
+
+  if (!is.null(output_path) && write_out == TRUE) {
+    write_csv(out, output_path)
+  }
+
+  out
+}
+```
+
+
 
 
 ---
@@ -496,8 +526,6 @@ boroughs <- c("Brooklyn", "Bronx", "Manhattan", "Staten", "Queens")
 borough_reg <- boroughs %>%
   str_c(collapse = "|")
 
-
-# Helper used inside pull_addresses()
 # If a tweet has a borough anywhere in it, pull it out
 clean_borough <- function(x) {
   if (is.na(x) || !str_detect(x, borough_reg)) {
@@ -606,6 +634,8 @@ get_map("london", zoom = 13) %>%
              aes(x = lon, y = lat), 
              color = "blue", size = 10)
 ```
+
+## `r emo::ji("wave")`
 
 ---
 
