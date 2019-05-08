@@ -739,7 +739,7 @@ plot_fire_sums(fire_sums, output_path = NULL)
 
 --
 
-**Things that you could ask that I haven't yet:**
+**Things that you could ask**
 
 (Data is on [GitHub](https://github.com/aedobbyn/nyr-2019/tree/master/data)!)
 
@@ -750,7 +750,23 @@ plot_fire_sums(fire_sums, output_path = NULL)
 
 --
 
+5pm and midnight
+
+--
+
 - On what days of the week and in which boroughs? 
+
+--
+
+Which borough has the most fires?
+
+Brooklyn
+
+--
+
+Which borough has the most fires, controlling for population?
+
+Staten Island
 
 --
 
