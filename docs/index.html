@@ -204,8 +204,7 @@ lat_long &lt;-
 
 # Sum up n fires by lat-long combo
 fire_sums &lt;-
-  lat_long %&gt;%
-  count_fires()
+  count_fires(lat_long)
 ```
 
 
@@ -226,16 +225,16 @@ get_timeline("NYCFireWire")
 ## # A tibble: 100 x 88
 ##    user_id status_id created_at          screen_name text  source
 ##    &lt;chr&gt;   &lt;chr&gt;     &lt;dttm&gt;              &lt;chr&gt;       &lt;chr&gt; &lt;chr&gt; 
-##  1 560024… 11259028… 2019-05-07 23:18:45 NYCFireWire Stat… thefi…
-##  2 560024… 11258382… 2019-05-07 19:02:08 NYCFireWire Bron… thefi…
-##  3 560024… 11258128… 2019-05-07 17:21:12 NYCFireWire Broo… thefi…
-##  4 560024… 11257955… 2019-05-07 16:12:36 NYCFireWire Broo… thefi…
-##  5 560024… 11257948… 2019-05-07 16:09:52 NYCFireWire Broo… thefi…
-##  6 560024… 11257160… 2019-05-07 10:56:35 NYCFireWire Broo… thefi…
-##  7 560024… 11256887… 2019-05-07 09:08:12 NYCFireWire Broo… Twitt…
-##  8 560024… 11256880… 2019-05-07 09:05:19 NYCFireWire Bron… thefi…
-##  9 560024… 11256528… 2019-05-07 06:45:32 NYCFireWire Bron… thefi…
-## 10 560024… 11256470… 2019-05-07 06:22:13 NYCFireWire Broo… thefi…
+##  1 560024… 11260014… 2019-05-08 05:50:33 NYCFireWire Manh… thefi…
+##  2 560024… 11259028… 2019-05-07 23:18:45 NYCFireWire Stat… thefi…
+##  3 560024… 11258382… 2019-05-07 19:02:08 NYCFireWire Bron… thefi…
+##  4 560024… 11258128… 2019-05-07 17:21:12 NYCFireWire Broo… thefi…
+##  5 560024… 11257955… 2019-05-07 16:12:36 NYCFireWire Broo… thefi…
+##  6 560024… 11257948… 2019-05-07 16:09:52 NYCFireWire Broo… thefi…
+##  7 560024… 11257160… 2019-05-07 10:56:35 NYCFireWire Broo… thefi…
+##  8 560024… 11256887… 2019-05-07 09:08:12 NYCFireWire Broo… Twitt…
+##  9 560024… 11256880… 2019-05-07 09:05:19 NYCFireWire Bron… thefi…
+## 10 560024… 11256528… 2019-05-07 06:45:32 NYCFireWire Bron… thefi…
 ## # … with 90 more rows, and 82 more variables: display_text_width &lt;dbl&gt;,
 ## #   reply_to_status_id &lt;lgl&gt;, reply_to_user_id &lt;lgl&gt;,
 ## #   reply_to_screen_name &lt;lgl&gt;, is_quote &lt;lgl&gt;, is_retweet &lt;lgl&gt;,
@@ -430,8 +429,6 @@ there_are_new_tweets &lt;- function(tbl,
 
 ---
 
-## Reupping Tweets
-
 Reup if `there_are_new_tweets()` is true.
 
 
@@ -500,29 +497,31 @@ get_tweets &lt;- function(tbl = NULL,
 
 Let's get some tweetssssss
 
+--
+
 &lt;br&gt;
 
 
 ```r
 get_tweets(n_tweets_seed = 15)
-## # A tibble: 15 x 5
-##    text                 user_id status_id   created_at          screen_name
-##    &lt;chr&gt;                &lt;chr&gt;   &lt;chr&gt;       &lt;dttm&gt;              &lt;chr&gt;      
-##  1 Manhattan *All Hand… 560024… 1126001421… 2019-05-08 01:50:33 NYCFireWire
-##  2 Staten Island *10-7… 560024… 1125902819… 2019-05-07 19:18:45 NYCFireWire
-##  3 Bronx *All Hands* B… 560024… 1125838243… 2019-05-07 15:02:08 NYCFireWire
-##  4 Brooklyn *All Hands… 560024… 1125812840… 2019-05-07 13:21:12 NYCFireWire
-##  5 Brooklyn *All Hands… 560024… 1125795578… 2019-05-07 12:12:36 NYCFireWire
-##  6 Brooklyn *10-75* Bo… 560024… 1125794889… 2019-05-07 12:09:52 NYCFireWire
-##  7 Brooklyn *MVA/Overt… 560024… 1125716049… 2019-05-07 06:56:35 NYCFireWire
-##  8 Brooklyn *10-60/Maj… 560024… 1125688773… 2019-05-07 05:08:12 NYCFireWire
-##  9 Bronx *All Hands* B… 560024… 1125688049… 2019-05-07 05:05:19 NYCFireWire
-## 10 Bronx *Subway Emerg… 560024… 1125652870… 2019-05-07 02:45:32 NYCFireWire
-## 11 Brooklyn *All Hands… 560024… 1125647002… 2019-05-07 02:22:13 NYCFireWire
-## 12 Brooklyn *10-60/Maj… 560024… 1125605433… 2019-05-06 23:37:02 NYCFireWire
-## 13 Queens *10-75* Box … 560024… 1125519444… 2019-05-06 17:55:21 NYCFireWire
-## 14 Brooklyn *10-75* Bo… 560024… 1125485645… 2019-05-06 15:41:03 NYCFireWire
-## 15 "FDNY Captain John … 560024… 1125381950… 2019-05-06 08:49:00 NYCFireWire
+## # A tibble: 15 x 4
+##    text                        status_id    created_at          screen_name
+##    &lt;chr&gt;                       &lt;chr&gt;        &lt;dttm&gt;              &lt;chr&gt;      
+##  1 Manhattan *All Hands* Box … 11260014219… 2019-05-08 01:50:33 NYCFireWire
+##  2 Staten Island *10-75* Box … 11259028192… 2019-05-07 19:18:45 NYCFireWire
+##  3 Bronx *All Hands* Box 3314… 11258382434… 2019-05-07 15:02:08 NYCFireWire
+##  4 Brooklyn *All Hands* Box 1… 11258128402… 2019-05-07 13:21:12 NYCFireWire
+##  5 Brooklyn *All Hands* Box 0… 11257955784… 2019-05-07 12:12:36 NYCFireWire
+##  6 Brooklyn *10-75* Box 0751.… 11257948897… 2019-05-07 12:09:52 NYCFireWire
+##  7 Brooklyn *MVA/Overturned* … 11257160497… 2019-05-07 06:56:35 NYCFireWire
+##  8 Brooklyn *10-60/Major Emer… 11256887735… 2019-05-07 05:08:12 NYCFireWire
+##  9 Bronx *All Hands* Box 3103… 11256880491… 2019-05-07 05:05:19 NYCFireWire
+## 10 Bronx *Subway Emergency* B… 11256528705… 2019-05-07 02:45:32 NYCFireWire
+## 11 Brooklyn *All Hands* Box 2… 11256470026… 2019-05-07 02:22:13 NYCFireWire
+## 12 Brooklyn *10-60/Major Emer… 11256054334… 2019-05-06 23:37:02 NYCFireWire
+## 13 Queens *10-75* Box 1067 . … 11255194444… 2019-05-06 17:55:21 NYCFireWire
+## 14 Brooklyn *10-75* Box 2802.… 11254856452… 2019-05-06 15:41:03 NYCFireWire
+## 15 "FDNY Captain John Moschel… 11253819505… 2019-05-06 08:49:00 NYCFireWire
 ```
 
 
@@ -565,7 +564,7 @@ we check for new tweets, and, if there are any, pull them in.
 ```r
 full_tweets &lt;- 
   get_tweets(seed_tweets, 
-             n_tweets_reup = 5)
+*            n_tweets_reup = 5)
 ```
 
 --
@@ -586,7 +585,7 @@ A closer look at just the text of the tweets:
 
 
 ```r
-get_tweets(n_tweets_seed = 7) %&gt;% 
+full_tweets %&gt;% 
   select(text) %&gt;% 
   kable()
 ```
@@ -614,74 +613,39 @@ get_tweets(n_tweets_seed = 7) %&gt;%
    &lt;td style="text-align:left;"&gt; Brooklyn *All Hands* Box 0751. 193 Wyckoff Ave off Himrod St.. Fire on the roof 3 story frame multiple dwelling. &lt;/td&gt;
   &lt;/tr&gt;
   &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; Brooklyn *10-75* Box 0751. 193 Wyckoff Ave off Himrod St.. Fire on the roof 3 story frame multiple dwelling. &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Bronx *66-75-3049* 1449 Commonwealth ave. Attic fire private dwelling. &lt;/td&gt;
   &lt;/tr&gt;
   &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; Brooklyn *MVA/Overturned* Box 0920. Sterling &amp;amp;amp; Albany Aves.. E-234 has an overturned auto, no pin. &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Manhattan *66-75-0755* 330 E 39 St. Fire in the duct work 3rd floor. 10-77(HiRise Residential). E-16/TL-7 1st due &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Manhattan 10-77* 66-75-2017* 70 Little West St x 2nd Pl. BC01 has a fire on the 7th floor in the laundry area. &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Bronx *66-75-2251* 2922 3rd Avenue at Westchester Avenue, Battalion 14 transmitting a 10-75 for a fire on the 4th floor of a 6 story commercial building. Squad 41 First Due &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Brooklyn **77-75-0270** 330 Bushwick Avenue Near McKibbin Street, Fire on the 4th Floor &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Brooklyn *77-75-0855* 899 Hancock St. Fire top floor 3 story &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Brooklyn **77-75-0855** 899 Hancock Street Near Howard Avenue, All hands going to work for fire I’m the top floor &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Bronx *66-75-3937* 3840 Orloff Av. Fire 4th floor. &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Staten Island *MVA/PIN* Box 1744-
+490 Harold St off Forest Hill Rd. Hurst tool in operation. &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Queens 99-75-6810 111-15 227 St BC-54 using all hands for a fire in a pvt dwelling &lt;/td&gt;
   &lt;/tr&gt;
 &lt;/tbody&gt;
 &lt;/table&gt;
 
----
-
-
-## Extracting Addresses
-
-Now we need to pull addresses out of the tweets.
-
-These come in two parts: borough and street.
-
-Through some regexing...
-
-
-
-
-
-```r
-(a_box_address &lt;- 
-  full_tweets %&gt;% 
-  filter(str_detect(text, "Box [0-9]+[,\\.]")) %&gt;% 
-  slice(1) %&gt;% 
-  pull(text))
-## [1] "Staten Island *10-75* Box 0404. 31 Rodeo Ln. House fire. Reported jumpers from the 2nd floor"
-```
-
-
-
-```r
-a_box_address %&gt;% 
-  pull_box_address()
-## [1] "31 Rodeo Ln"
-```
-
----
-
-## Boroughs
-
-
-```r
-boroughs &lt;- c("Brooklyn", "Bronx", "Manhattan", "Staten", "Queens")
-borough_reg &lt;- boroughs %&gt;%
-  str_c(collapse = "|")
-
-# If a tweet has a borough anywhere in it, pull it out
-clean_borough &lt;- function(x) {
-  if (is.na(x) || !str_detect(x, borough_reg)) {
-    return(NA_character_)
-  }
-
-  # Return the borough match
-  b &lt;- boroughs[which(str_detect(x, boroughs))][1]
-
-  if (b == "Bronx") {
-    b &lt;- "The Bronx"
-  } else if (b == "Staten") {
-    b &lt;- "Staten Island"
-  }
-
-  b
-}
-```
 
 
 ---
@@ -853,7 +817,7 @@ get_map("london", zoom = 13) %&gt;%
              color = "blue", size = 10)
 ```
 
-![](index_files/figure-html/unnamed-chunk-22-1.png)&lt;!-- --&gt;
+![](index_files/figure-html/unnamed-chunk-18-1.png)&lt;!-- --&gt;
 
 
 ## 👋
@@ -885,7 +849,7 @@ get_lat_long &lt;- function(tbl) {
           TRUE ~ address
         ),
       l_l = address %&gt;%
-        geocode() %&gt;%
+*       geocode() %&gt;% # &lt;-- doing the work here
         list()
     ) %&gt;%
     unnest() %&gt;%
@@ -923,10 +887,10 @@ full_tweets %&gt;%
  &lt;/thead&gt;
 &lt;tbody&gt;
   &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; Brooklyn **77-75-0855** 899 Hancock Street Near Howard Avenue, All hands going to work for fire I’m the top floor &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 899 Hancock Street Near Howard Avenue, Brooklyn &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 40.67302 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; -73.91986 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Bronx *All Hands* Box 3314. 2305 Grand Ave. Fire apt 1C. &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 2305 Grand Ave, The Bronx &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 40.86019 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; -73.90526 &lt;/td&gt;
   &lt;/tr&gt;
 &lt;/tbody&gt;
 &lt;/table&gt;
@@ -963,7 +927,7 @@ get_map("new york city") %&gt;%
   ggmap()
 ```
 
-![](index_files/figure-html/unnamed-chunk-26-1.png)&lt;!-- --&gt;
+![](index_files/figure-html/unnamed-chunk-22-1.png)&lt;!-- --&gt;
 
 
 ---
@@ -1011,7 +975,7 @@ Using ~3k tweets:
 plot_fire_sums(fire_sums, output_path = NULL)
 ```
 
-![](index_files/figure-html/unnamed-chunk-27-1.png)&lt;!-- --&gt;
+![](index_files/figure-html/unnamed-chunk-23-1.png)&lt;!-- --&gt;
 
 
 &lt;!-- &lt;p&gt; --&gt;

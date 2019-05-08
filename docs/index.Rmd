@@ -19,7 +19,7 @@ output:
 ```{r setup, include=FALSE, warning=FALSE}
 library(knitr)
 library(kableExtra)
-opts_chunk$set(echo = TRUE, eval = TRUE, collapse = TRUE, cache = TRUE, message = FALSE)
+opts_chunk$set(echo = TRUE, eval = TRUE, collapse = TRUE, cache = FALSE, message = FALSE)
 options(htmltools.dir.version = FALSE)
 options(knitr.table.format = "html")
 
@@ -206,8 +206,7 @@ lat_long <-
 
 # Sum up n fires by lat-long combo
 fire_sums <-
-  lat_long %>%
-  count_fires()
+  count_fires(lat_long)
 ```
 
 
@@ -373,8 +372,6 @@ there_are_new_tweets <- function(tbl,
 
 ---
 
-## Reupping Tweets
-
 Reup if `there_are_new_tweets()` is true.
 
 ```{r eval=FALSE}
@@ -441,6 +438,8 @@ get_tweets <- function(tbl = NULL,
 
 Let's get some tweetssssss
 
+--
+
 <br>
 
 ```{r}
@@ -484,7 +483,7 @@ we check for new tweets, and, if there are any, pull them in.
 ```{r}
 full_tweets <- 
   get_tweets(seed_tweets, 
-             n_tweets_reup = 5)
+             n_tweets_reup = 5) #<<
 ```
 
 --
@@ -501,74 +500,11 @@ nrow(full_tweets)
 A closer look at just the text of the tweets:
 
 ```{r}
-get_tweets(n_tweets_seed = 7) %>% 
+full_tweets %>% 
   select(text) %>% 
   kable()
 ```
 
----
-
-
-## Extracting Addresses
-
-Now we need to pull addresses out of the tweets.
-
-These come in two parts: borough and street.
-
-Through some regexing...
-
-```{r, echo=FALSE}
-pull_box_address <- function(x) {
-  x %>%
-    str_extract("Box [0-9]+.+[,\\.]") %>%
-    str_extract("\\..+?\\.") %>%
-    str_remove_all("[,\\.]") %>%
-    str_trim()
-}
-```
-
-
-```{r}
-(a_box_address <- 
-  full_tweets %>% 
-  filter(str_detect(text, "Box [0-9]+[,\\.]")) %>% 
-  slice(1) %>% 
-  pull(text))
-```
-
-
-```{r}
-a_box_address %>% 
-  pull_box_address()
-```
-
----
-
-## Boroughs
-
-```{r}
-boroughs <- c("Brooklyn", "Bronx", "Manhattan", "Staten", "Queens")
-borough_reg <- boroughs %>%
-  str_c(collapse = "|")
-
-# If a tweet has a borough anywhere in it, pull it out
-clean_borough <- function(x) {
-  if (is.na(x) || !str_detect(x, borough_reg)) {
-    return(NA_character_)
-  }
-
-  # Return the borough match
-  b <- boroughs[which(str_detect(x, boroughs))][1]
-
-  if (b == "Bronx") {
-    b <- "The Bronx"
-  } else if (b == "Staten") {
-    b <- "Staten Island"
-  }
-
-  b
-}
-```
 
 
 ---
@@ -689,7 +625,7 @@ get_lat_long <- function(tbl) {
           TRUE ~ address
         ),
       l_l = address %>%
-        geocode() %>%
+        geocode() %>% # <-- doing the work here #<<
         list()
     ) %>%
     unnest() %>%
