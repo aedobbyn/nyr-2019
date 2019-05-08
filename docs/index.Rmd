@@ -19,7 +19,7 @@ output:
 ```{r setup, include=FALSE, warning=FALSE}
 library(knitr)
 library(kableExtra)
-opts_chunk$set(echo = TRUE, eval = TRUE, collapse = TRUE, cache = TRUE, message = FALSE)
+opts_chunk$set(echo = TRUE, eval = TRUE, collapse = TRUE, cache = FALSE, message = FALSE)
 options(htmltools.dir.version = FALSE)
 options(knitr.table.format = "html")
 ```
@@ -230,32 +230,45 @@ get_timeline("NYCFireWire")
 
 Wowza.
 
-We'll wrap that up in a function that 
-- selects only columns we care about  
-- writes the result out to a file 
-- lets us grab new tweets as they come in
+--
 
 <br>
 
-One of the most useful arguments to `get_timeline` for pipelining is **`max_id`**
+We'll wrap that up in a function that: 
+
+<br>
+
+--
+
+- pulls in tweets, either the first big batch or any new ones that show up
+
+--
+
+<br>
+
+- writes the result out to a file 
+
 
 ---
 
-
-```{r}
-?get_timeline
-```
-
-- This lets you specify the most *recent* tweet you want; all other tweets will be older
+## Grabbing Tweets
 
 
+- `get_seed_tweets` grabs a batch of tweets *or* reads in seed tweets from a file if the file exists
 
 <br>
 
-- We can use this to 
-  - get older and older batches of tweets
-  - get only the most recent ones
+- `get_more_tweets` checks if there are new tweets and, if so, pulls in the right number of them
 
+<br>
+
+- `get_tweets` runs `get_seed_tweets` if given a null `tbl` argument, otherwise runs `get_more_tweets`
+
+???
+
+- If neither file nor `tbl` is supplied as arguments, grabs an initial *seed* batch of tweets
+- If either is supplied, checks for new tweets and grabs them if any
+- Spits out the latest to the same file
 
 ---
 
@@ -284,59 +297,6 @@ get_seed_tweets <- function(user = firewire_handle,
   }
   out
 }
-```
-
-
----
-
-## Grabbing Tweets
-
-**Pull in tweets, either the first big batch or any new ones that show up**
-
-- This way we can run the same function to look for more tweets at any time, if they exist
-
----
-
-## Grabbing Tweets
-
-[`get_tweets`](https://github.com/aedobbyn/nyc-fires/blob/master/R/didnt_start_it.R)
-
---
-
-*Main idea*: 
-
-* **Builds up a file** of the most recent set of tweets from a given account
-
---
-
-*Details*:
-- If neither file nor `tbl` is supplied as arguments, grabs an initial *seed* batch of tweets
-- If either is supplied, checks for new tweets and grabs them if any
-- Spits out the latest to the same file
-
-<br>
-
-```{r}
-get_tweets(n_tweets_seed = 3)
-```
-
-???
-
-- `get_seed_tweets` grabs a batch of tweets *or* reads in seed tweets from a file if the file exists
-- `get_more_tweets` checks if there are new tweets and, if so, pulls in the right number of them
-- `get_tweets` runs `get_seed_tweets` if given a null `tbl` argument, otherwise runs `get_more_tweets`
-
-
----
-
-## Grabbing Seed Tweets
-
-A closer look at just the text of the tweets:
-
-```{r}
-get_tweets(n_tweets_seed = 5) %>% 
-  select(text) %>% 
-  kable()
 ```
 
 
@@ -435,6 +395,23 @@ get_tweets <- function(tbl = NULL,
 }
 ```
 
+
+---
+
+```{r}
+get_tweets(n_tweets_seed = 5)
+```
+
+
+---
+
+A closer look at just the text of the tweets:
+
+```{r}
+get_tweets(n_tweets_seed = 5) %>% 
+  select(text) %>% 
+  kable()
+```
 
 
 
@@ -728,8 +705,8 @@ get_map("new york city") %>%
 
 ---
 
-```{r plot_fire_sums}
-nyc_map <- get_map("new york city", zoom = 7)
+```{r plot_fire_sums, eval=FALSE}
+nyc_map <- get_map("new york city", zoom = 11)
 
 plot_fire_sums <- function(tbl, city = nyc_map,
                            output_path = 
@@ -782,6 +759,9 @@ plot_fire_sums(fire_sums, output_path = NULL)
 <!-- <img src="./img/fire_sums_plot.png"> -->
 <!-- </p> -->
  
+---
+
+![](https://media.giphy.com/media/5VMNcCxVBibZK/giphy.gif)
 
 ---
 
@@ -802,10 +782,7 @@ plan <-
       # Send to Google for lat-longs
     lat_long = get_lat_long(addresses), 
       # Sum up n fires per lat-long combo
-    fire_sums = count_fires(lat_long), 
-
-    time_graph = graph_fire_times(lat_long),
-    plot = plot_fire_sums(fire_sums)
+    fire_sums = count_fires(lat_long)
   )
 ```
 
@@ -813,6 +790,14 @@ plan <-
 
 ```{r}
 plan
+```
+
+---
+
+```{r}
+r_make(plan)
+
+loadd(fire_sums)
 ```
 
 
