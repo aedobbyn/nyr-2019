@@ -254,13 +254,13 @@ We'll wrap that up in a function that:
 
 --
 
-- pulls in tweets, either the first big batch or any new ones that show up
+- Pulls in tweets, either the first big batch or any new ones that show up
 
 --
 
 <br>
 
-- writes the result out to a file 
+- Writes the result out to a file 
 
 
 ---
@@ -444,18 +444,7 @@ Let's get some tweetssssss
 <br>
 
 ```{r}
-get_tweets(n_tweets_seed = 7)
-```
-
-
----
-
-A closer look at just the text of the tweets:
-
-```{r}
-get_tweets(n_tweets_seed = 7) %>% 
-  select(text) %>% 
-  kable()
+get_tweets(n_tweets_seed = 15)
 ```
 
 
@@ -509,6 +498,17 @@ nrow(full_tweets)
 
 ---
 
+A closer look at just the text of the tweets:
+
+```{r}
+get_tweets(n_tweets_seed = 7) %>% 
+  select(text) %>% 
+  kable()
+```
+
+---
+
+
 ## Extracting Addresses
 
 Now we need to pull addresses out of the tweets.
@@ -547,7 +547,6 @@ a_box_address %>%
 ## Boroughs
 
 ```{r}
-# Bronx will become The Bronx and Staten will become Staten Island in clean_borough()
 boroughs <- c("Brooklyn", "Bronx", "Manhattan", "Staten", "Queens")
 borough_reg <- boroughs %>%
   str_c(collapse = "|")
@@ -699,14 +698,19 @@ get_lat_long <- function(tbl) {
 }
 ```
 
-
 ---
+
+Can we get the lat and long of a fire from a tweet?
+
+--
+
+The full pipeline:
 
 ```{r}
 full_tweets %>% 
   sample_n(1) %>% 
   pull_addresses() %>% 
-  get_lat_long() %>% 
+  get_lat_long() %>%  #<<
   select(text, address, lat, long) %>% 
   kable()
 ```
@@ -734,17 +738,6 @@ so we can plot them on a map (thanks again, `ggmap`)
 
 ---
 
-## Counting Up
-
-```{r}
-fire_sums %>% 
-  arrange(desc(n)) %>% 
-  slice(1:10)
-```
-
-
----
-
 ## Mapping
 
 ```{r}
@@ -756,8 +749,6 @@ get_map("new york city") %>%
 ---
 
 ```{r plot_fire_sums, eval=FALSE}
-nyc_map <- get_map("new york city", zoom = 11)
-
 plot_fire_sums <- function(tbl, city = nyc_map,
                            output_path = 
                              here("plots", "fire_sums_plot.png"),
@@ -809,51 +800,26 @@ plot_fire_sums(fire_sums, output_path = NULL)
 
 ![](https://media.giphy.com/media/5VMNcCxVBibZK/giphy.gif)
 
-Things that you could ask that I haven't yet:
+
+--
+
+**Things that you could ask that I haven't yet:**
+
+(Data is on [GitHub](https://github.com/aedobbyn/nyr-2019/tree/master/data)!)
+
+<br>
+--
 
 - What time of day do fires typically happen?
 
-<br>
+--
 
 - On what days of the week and in which boroughs? 
 
-<br>
+--
 
 - Any common keywords? (Kitchen, electrical)
 
----
-
-### How would this look in a `drake` plan?
-
-<br>
-
-```{r}
-plan <-
-  drake_plan(
-    seed_fires = get_tweets(), 
-    fires = target(
-      command = get_tweets(tbl = seed_fires),
-        # Only pull if there are new tweets
-      trigger = trigger(condition = there_are_new_tweets) 
-    ),
-      # Extract addresses from tweets
-    addresses = pull_addresses(fires), 
-      # Send to Google for lat-longs
-    lat_long = get_lat_long(addresses), 
-      # Sum up n fires per lat-long combo
-    fire_sums = count_fires(lat_long)
-  )
-```
-
----
-
-### How would this look in a `drake` plan?
-
-<br>
-
-```{r}
-plan
-```
 
 
 ---

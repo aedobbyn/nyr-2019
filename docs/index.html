@@ -299,13 +299,13 @@ We'll wrap that up in a function that:
 
 --
 
-- pulls in tweets, either the first big batch or any new ones that show up
+- Pulls in tweets, either the first big batch or any new ones that show up
 
 --
 
 &lt;br&gt;
 
-- writes the result out to a file 
+- Writes the result out to a file 
 
 
 ---
@@ -504,61 +504,26 @@ Let's get some tweetssssss
 
 
 ```r
-get_tweets(n_tweets_seed = 7)
-## # A tibble: 7 x 5
-##   text                  user_id status_id   created_at          screen_name
-##   &lt;chr&gt;                 &lt;chr&gt;   &lt;chr&gt;       &lt;dttm&gt;              &lt;chr&gt;      
-## 1 Staten Island *10-75… 560024… 1125902819… 2019-05-07 19:18:45 NYCFireWire
-## 2 Bronx *All Hands* Bo… 560024… 1125838243… 2019-05-07 15:02:08 NYCFireWire
-## 3 Brooklyn *All Hands*… 560024… 1125812840… 2019-05-07 13:21:12 NYCFireWire
-## 4 Brooklyn *All Hands*… 560024… 1125795578… 2019-05-07 12:12:36 NYCFireWire
-## 5 Brooklyn *10-75* Box… 560024… 1125794889… 2019-05-07 12:09:52 NYCFireWire
-## 6 Brooklyn *MVA/Overtu… 560024… 1125716049… 2019-05-07 06:56:35 NYCFireWire
-## 7 Brooklyn *10-60/Majo… 560024… 1125688773… 2019-05-07 05:08:12 NYCFireWire
+get_tweets(n_tweets_seed = 15)
+## # A tibble: 15 x 5
+##    text                 user_id status_id   created_at          screen_name
+##    &lt;chr&gt;                &lt;chr&gt;   &lt;chr&gt;       &lt;dttm&gt;              &lt;chr&gt;      
+##  1 Manhattan *All Hand… 560024… 1126001421… 2019-05-08 01:50:33 NYCFireWire
+##  2 Staten Island *10-7… 560024… 1125902819… 2019-05-07 19:18:45 NYCFireWire
+##  3 Bronx *All Hands* B… 560024… 1125838243… 2019-05-07 15:02:08 NYCFireWire
+##  4 Brooklyn *All Hands… 560024… 1125812840… 2019-05-07 13:21:12 NYCFireWire
+##  5 Brooklyn *All Hands… 560024… 1125795578… 2019-05-07 12:12:36 NYCFireWire
+##  6 Brooklyn *10-75* Bo… 560024… 1125794889… 2019-05-07 12:09:52 NYCFireWire
+##  7 Brooklyn *MVA/Overt… 560024… 1125716049… 2019-05-07 06:56:35 NYCFireWire
+##  8 Brooklyn *10-60/Maj… 560024… 1125688773… 2019-05-07 05:08:12 NYCFireWire
+##  9 Bronx *All Hands* B… 560024… 1125688049… 2019-05-07 05:05:19 NYCFireWire
+## 10 Bronx *Subway Emerg… 560024… 1125652870… 2019-05-07 02:45:32 NYCFireWire
+## 11 Brooklyn *All Hands… 560024… 1125647002… 2019-05-07 02:22:13 NYCFireWire
+## 12 Brooklyn *10-60/Maj… 560024… 1125605433… 2019-05-06 23:37:02 NYCFireWire
+## 13 Queens *10-75* Box … 560024… 1125519444… 2019-05-06 17:55:21 NYCFireWire
+## 14 Brooklyn *10-75* Bo… 560024… 1125485645… 2019-05-06 15:41:03 NYCFireWire
+## 15 "FDNY Captain John … 560024… 1125381950… 2019-05-06 08:49:00 NYCFireWire
 ```
-
-
----
-
-A closer look at just the text of the tweets:
-
-
-```r
-get_tweets(n_tweets_seed = 7) %&gt;% 
-  select(text) %&gt;% 
-  kable()
-```
-
-&lt;table&gt;
- &lt;thead&gt;
-  &lt;tr&gt;
-   &lt;th style="text-align:left;"&gt; text &lt;/th&gt;
-  &lt;/tr&gt;
- &lt;/thead&gt;
-&lt;tbody&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; Staten Island *10-75* Box 0404. 31 Rodeo Ln. House fire. Reported jumpers from the 2nd floor &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; Bronx *All Hands* Box 3314. 2305 Grand Ave. Fire apt 1C. &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; Brooklyn *All Hands* Box 1568. 167 Lenox Rd. Fire 1st floor 4 story multiple dwelling &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; Brooklyn *All Hands* Box 0751. 193 Wyckoff Ave off Himrod St.. Fire on the roof 3 story frame multiple dwelling. &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; Brooklyn *10-75* Box 0751. 193 Wyckoff Ave off Himrod St.. Fire on the roof 3 story frame multiple dwelling. &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; Brooklyn *MVA/Overturned* Box 0920. Sterling &amp;amp;amp; Albany Aves.. E-234 has an overturned auto, no pin. &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; Brooklyn *10-60/Major Emergency* Box 2980. 494 Avenue P. E-330/TL-172 1st due https://t.co/EaiTcDQFgr &lt;/td&gt;
-  &lt;/tr&gt;
-&lt;/tbody&gt;
-&lt;/table&gt;
 
 
 
@@ -617,6 +582,49 @@ nrow(full_tweets)
 
 ---
 
+A closer look at just the text of the tweets:
+
+
+```r
+get_tweets(n_tweets_seed = 7) %&gt;% 
+  select(text) %&gt;% 
+  kable()
+```
+
+&lt;table&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; text &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Manhattan *All Hands* Box 1605. 2441 Adam Clayton Powell Jr Blvd, . Fire 5th floor 7 story &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Staten Island *10-75* Box 0404. 31 Rodeo Ln. House fire. Reported jumpers from the 2nd floor &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Bronx *All Hands* Box 3314. 2305 Grand Ave. Fire apt 1C. &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Brooklyn *All Hands* Box 1568. 167 Lenox Rd. Fire 1st floor 4 story multiple dwelling &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Brooklyn *All Hands* Box 0751. 193 Wyckoff Ave off Himrod St.. Fire on the roof 3 story frame multiple dwelling. &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Brooklyn *10-75* Box 0751. 193 Wyckoff Ave off Himrod St.. Fire on the roof 3 story frame multiple dwelling. &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Brooklyn *MVA/Overturned* Box 0920. Sterling &amp;amp;amp; Albany Aves.. E-234 has an overturned auto, no pin. &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+---
+
+
 ## Extracting Addresses
 
 Now we need to pull addresses out of the tweets.
@@ -652,7 +660,6 @@ a_box_address %&gt;%
 
 
 ```r
-# Bronx will become The Bronx and Staten will become Staten Island in clean_borough()
 boroughs &lt;- c("Brooklyn", "Bronx", "Manhattan", "Staten", "Queens")
 borough_reg &lt;- boroughs %&gt;%
   str_c(collapse = "|")
@@ -887,15 +894,20 @@ get_lat_long &lt;- function(tbl) {
 }
 ```
 
-
 ---
+
+Can we get the lat and long of a fire from a tweet?
+
+--
+
+The full pipeline:
 
 
 ```r
 full_tweets %&gt;% 
   sample_n(1) %&gt;% 
   pull_addresses() %&gt;% 
-  get_lat_long() %&gt;% 
+* get_lat_long() %&gt;%
   select(text, address, lat, long) %&gt;% 
   kable()
 ```
@@ -913,8 +925,8 @@ full_tweets %&gt;%
   &lt;tr&gt;
    &lt;td style="text-align:left;"&gt; Brooklyn **77-75-0855** 899 Hancock Street Near Howard Avenue, All hands going to work for fire I’m the top floor &lt;/td&gt;
    &lt;td style="text-align:left;"&gt; 899 Hancock Street Near Howard Avenue, Brooklyn &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 40.68623 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; -73.91941 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 40.67302 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; -73.91986 &lt;/td&gt;
   &lt;/tr&gt;
 &lt;/tbody&gt;
 &lt;/table&gt;
@@ -943,31 +955,6 @@ so we can plot them on a map (thanks again, `ggmap`)
 
 ---
 
-## Counting Up
-
-
-```r
-fire_sums %&gt;% 
-  arrange(desc(n)) %&gt;% 
-  slice(1:10)
-## # A tibble: 10 x 3
-##      lat  long     n
-##    &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
-##  1  40.7 -73.9    55
-##  2  40.8 -74.0    25
-##  3  40.7 -73.8    22
-##  4  40.8 -73.9    17
-##  5  40.6 -74.2    14
-##  6  40.6 -73.8     7
-##  7  40.9 -73.9     7
-##  8  40.6 -73.7     6
-##  9  40.6 -73.9     6
-## 10  40.7 -73.9     6
-```
-
-
----
-
 ## Mapping
 
 
@@ -976,15 +963,13 @@ get_map("new york city") %&gt;%
   ggmap()
 ```
 
-![](index_files/figure-html/unnamed-chunk-27-1.png)&lt;!-- --&gt;
+![](index_files/figure-html/unnamed-chunk-26-1.png)&lt;!-- --&gt;
 
 
 ---
 
 
 ```r
-nyc_map &lt;- get_map("new york city", zoom = 11)
-
 plot_fire_sums &lt;- function(tbl, city = nyc_map,
                            output_path = 
                              here("plots", "fire_sums_plot.png"),
@@ -1026,7 +1011,7 @@ Using ~3k tweets:
 plot_fire_sums(fire_sums, output_path = NULL)
 ```
 
-![](index_files/figure-html/unnamed-chunk-28-1.png)&lt;!-- --&gt;
+![](index_files/figure-html/unnamed-chunk-27-1.png)&lt;!-- --&gt;
 
 
 &lt;!-- &lt;p&gt; --&gt;
@@ -1039,61 +1024,26 @@ plot_fire_sums(fire_sums, output_path = NULL)
 
 ![](https://media.giphy.com/media/5VMNcCxVBibZK/giphy.gif)
 
-Things that you could ask that I haven't yet:
+
+--
+
+**Things that you could ask that I haven't yet:**
+
+(Data is on [GitHub](https://github.com/aedobbyn/nyr-2019/tree/master/data)!)
+
+&lt;br&gt;
+--
 
 - What time of day do fires typically happen?
 
-&lt;br&gt;
+--
 
 - On what days of the week and in which boroughs? 
 
-&lt;br&gt;
+--
 
 - Any common keywords? (Kitchen, electrical)
 
----
-
-### How would this look in a `drake` plan?
-
-&lt;br&gt;
-
-
-```r
-plan &lt;-
-  drake_plan(
-    seed_fires = get_tweets(), 
-    fires = target(
-      command = get_tweets(tbl = seed_fires),
-        # Only pull if there are new tweets
-      trigger = trigger(condition = there_are_new_tweets) 
-    ),
-      # Extract addresses from tweets
-    addresses = pull_addresses(fires), 
-      # Send to Google for lat-longs
-    lat_long = get_lat_long(addresses), 
-      # Sum up n fires per lat-long combo
-    fire_sums = count_fires(lat_long)
-  )
-```
-
----
-
-### How would this look in a `drake` plan?
-
-&lt;br&gt;
-
-
-```r
-plan
-## # A tibble: 5 x 3
-##   target     command                   trigger                             
-##   &lt;chr&gt;      &lt;expr&gt;                    &lt;expr&gt;                              
-## 1 seed_fires get_tweets()            … NA                                 …
-## 2 fires      get_tweets(tbl = seed_fi… trigger(condition = there_are_new_t…
-## 3 addresses  pull_addresses(fires)   … NA                                 …
-## 4 lat_long   get_lat_long(addresses) … NA                                 …
-## 5 fire_sums  count_fires(lat_long)   … NA                                 …
-```
 
 
 ---
