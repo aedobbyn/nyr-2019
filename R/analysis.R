@@ -1,5 +1,5 @@
 
-source(here::here("R", "didnt_start_it.R"))
+# source(here::here("R", "didnt_start_it.R"))
 
 addresses <- read_csv(here("data", "derived", "addresses.csv"))
 lat_long <- read_csv(here("data", "derived", "lat_long.csv"))
@@ -41,12 +41,18 @@ borough_pop <-
 
 
 # N fires by borough
-fires_by_borough %>%
+fires_by_borough_per_cap <- 
+  fires_by_borough %>%
   left_join(borough_pop, by = c("borough" = "name")) %>%
   mutate(
     fires_per_person = n / population
   ) %>%
   arrange(desc(fires_per_person))
+
+write_csv(fires_by_borough, 
+          here("data", "derived", "fires_by_borough.csv"))
+write_csv(fires_by_borough_per_cap, 
+          here("data", "derived", "fires_by_borough.csv"))
 
 
 clean_hour <- function(x) {
@@ -66,23 +72,46 @@ dat <-
   addresses %>%
   drop_na(address) %>%
   mutate(
-    day = lubridate::wday(created_at, label = TRUE),
+    date = lubridate::date(created_at),
+    month = lubridate::month(created_at),
+    month_label = lubridate::month(created_at, label = TRUE),
+    wday = lubridate::wday(created_at, label = TRUE),
     hour = lubridate::hour(created_at),
     hour_label = map_chr(hour, clean_hour)
+  ) %>% 
+  # Just take a year
+  filter(
+    date <= min(date) + 356
   )
 
+# Fires by month
+by_month <- 
+  dat %>%
+  group_by(month, month_label) %>%
+  count(sort = TRUE)
 
+by_month %>%
+  ggplot() +
+  aes(month, n) +
+  geom_bar(stat = "identity", alpha = 0.5) +
+  labs(x = "Month of Year", y = "N Fires") +
+  ggtitle("Fires by Month") +
+  scale_x_continuous(
+    breaks = 1:12,
+    labels = lubridate::month(1:12, label = TRUE)
+  ) +
+  hrbrthemes::theme_ipsum_ps()
 
 
 # Fires by day
 by_day <- 
   dat %>%
-  group_by(day) %>%
+  group_by(wday) %>%
   count(sort = TRUE)
 
 by_day %>%
   ggplot() +
-  aes(day, n) +
+  aes(wday, n) +
   geom_bar(stat = "identity", alpha = 0.5) +
   labs(x = "Day of Week", y = "N Fires") +
   ggtitle("Fires by Day") +
