@@ -65,6 +65,8 @@ class: inverse
 
 - `drake` is a workflow management package for data pipelines (come talk to me about it!)
 
+
+
 --
 
 &lt;br&gt;
@@ -348,9 +350,6 @@ We'll wrap that up in a function that:
 
 A simplified version of `get_seed_tweets`:
 
-If an `input_path` exists, read in from there instead of grabbing tweets.
-If an `output_path` exists, write out what we've got to that path.
-
 
 ```r
 get_seed_tweets &lt;- function(user = firewire_handle, 
@@ -374,12 +373,18 @@ get_seed_tweets &lt;- function(user = firewire_handle,
 ```
 
 
+???
+If an `input_path` exists, read in from there instead of grabbing tweets.
+If an `output_path` exists, write out what we've got to that path.
+
 
 ---
 
 `status_id` is useful because we can supply a `max_id` to get only tweets older than that ID 
 
-➡️ good for working backwards in time to get more and more data 👍
+--
+
+--&gt; good for working backwards in time to get older and older data 👍
 
 --
 
@@ -508,11 +513,12 @@ get_tweets &lt;- function(tbl = NULL,
 
 ---
 
+&lt;br&gt;
+
 #### Let's get some tweets
 
 --
 
-&lt;br&gt;
 
 
 ```r
@@ -613,19 +619,7 @@ nrow(full_tweets)
 
 A closer look at just the text of the tweets:
 
-
-```r
-full_tweets %&gt;% 
-  select(text) %&gt;% 
-  kable()
-```
-
 &lt;table&gt;
- &lt;thead&gt;
-  &lt;tr&gt;
-   &lt;th style="text-align:left;"&gt; text &lt;/th&gt;
-  &lt;/tr&gt;
- &lt;/thead&gt;
 &lt;tbody&gt;
   &lt;tr&gt;
    &lt;td style="text-align:left;"&gt; Manhattan *2nd Alarm* Box 0524. 99 University Pl. Fire 4th floor. &lt;/td&gt;
@@ -681,33 +675,58 @@ full_tweets %&gt;%
 
 ## Extracting Addresses
 
-Now we need to pull addresses out of the tweets.
+Next step is to pull out addresses.
 
-These come in two parts: borough and street.
+&lt;br&gt;
 
-Through some regexing...
+These come in two parts: **borough** and **street**.
 
+&lt;br&gt;
 
+&lt;table&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Manhattan *2nd Alarm* Box 0524. 99 University Pl. Fire 4th floor. &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Manhattan *All Hands* Box 1605. 2441 Adam Clayton Powell Jr Blvd, . Fire 5th floor 7 story &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Staten Island *10-75* Box 0404. 31 Rodeo Ln. House fire. Reported jumpers from the 2nd floor &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Bronx *All Hands* Box 3314. 2305 Grand Ave. Fire apt 1C. &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Brooklyn *All Hands* Box 1568. 167 Lenox Rd. Fire 1st floor 4 story multiple dwelling &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
 
+---
+
+~ After some fun w/ regexes ~
+
+--
 
 
 ```r
-a_box_address &lt;- 
-  full_tweets %&gt;% 
-  filter(str_detect(text, "Box [0-9]+[,\\.]")) %&gt;% 
-  slice(1) %&gt;% 
-  select(text)
- 
-a_box_address %&gt;% 
-  kable()
+pull_box_address &lt;- function(x) {
+  x %&gt;%
+    str_extract("Box [0-9]+.+[,\\.]") %&gt;%
+    str_extract("\\..+?\\.") %&gt;%
+    str_remove_all("[,\\.]") %&gt;%
+    str_trim()
+}
 ```
 
+--
+
+for a given tweet
+
+
+
 &lt;table&gt;
- &lt;thead&gt;
-  &lt;tr&gt;
-   &lt;th style="text-align:left;"&gt; text &lt;/th&gt;
-  &lt;/tr&gt;
- &lt;/thead&gt;
 &lt;tbody&gt;
   &lt;tr&gt;
    &lt;td style="text-align:left;"&gt; Manhattan *2nd Alarm* Box 0524. 99 University Pl. Fire 4th floor. &lt;/td&gt;
@@ -715,13 +734,28 @@ a_box_address %&gt;%
 &lt;/tbody&gt;
 &lt;/table&gt;
 
+--
+
+&lt;br&gt;
+
+we can pull just the street address out.
+
+--
 
 
 ```r
 a_box_address %&gt;% 
-  pull_box_address()
-## [1] "99 University Pl"
+  pull_box_address() %&gt;% 
+  kable(col.names = NULL)
 ```
+
+&lt;table&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; 99 University Pl &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
 
 ---
 
@@ -732,7 +766,12 @@ a_box_address %&gt;%
 boroughs &lt;- c("Brooklyn", "Bronx", "Manhattan", "Staten", "Queens")
 borough_reg &lt;- boroughs %&gt;%
   str_c(collapse = "|")
-# If a tweet has a borough anywhere in it, pull it out
+```
+
+
+
+
+```r
 clean_borough &lt;- function(x) {
   if (is.na(x) || !str_detect(x, borough_reg)) {
     return(NA_character_)
@@ -747,6 +786,43 @@ clean_borough &lt;- function(x) {
   b
 }
 ```
+
+
+---
+
+## Boroughs
+
+Same tweet again:
+
+&lt;table&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Manhattan *2nd Alarm* Box 0524. 99 University Pl. Fire 4th floor. &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;br&gt;
+
+--
+
+Now we can grab the borough:
+
+
+```r
+a_box_address %&gt;% 
+  clean_borough() %&gt;% 
+  kable(col.names = NULL)
+```
+
+&lt;table&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Manhattan &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
 
 ---
 
@@ -907,18 +983,30 @@ The `ggmap::geocode` accepts a string and returns a dataframe of `lon` and `lat`
 
 #### Where's Sherlock?
 
+
+```r
+london &lt;- get_map("london", zoom = 13) 
+
+ggmap(london)
+```
+
+![](index_files/figure-html/unnamed-chunk-29-1.png)&lt;!-- --&gt;
+
+---
+
+#### Where's Sherlock?
+
 --
 
 
 ```r
-get_map("london", zoom = 13) %&gt;% 
-  ggmap() +
+ggmap(london) +
   geom_point(data = sherlock, 
              aes(x = lon, y = lat), 
              color = "blue", size = 10)
 ```
 
-![](index_files/figure-html/unnamed-chunk-24-1.png)&lt;!-- --&gt;
+![](index_files/figure-html/unnamed-chunk-30-1.png)&lt;!-- --&gt;
 
 
 ## 👋
@@ -928,7 +1016,7 @@ get_map("london", zoom = 13) %&gt;%
 
 #### Where's Sherlock?
 
-&lt;br&gt;
+&lt;br&gt;&lt;br&gt;
 
 &lt;p&gt;
   &lt;img src="https://media.giphy.com/media/EVjAANNjkMBKE/giphy.gif" height="300px" align="middle"&gt;
@@ -938,11 +1026,17 @@ get_map("london", zoom = 13) %&gt;%
 
 &lt;br&gt;
 
-## 👋
+&lt;div align="middle"&gt;
+  &lt;h2&gt; 👋 &lt;/h2&gt;
+&lt;/div&gt;
 
 ---
 
-So we can put that together into a function that works on a dataframe.
+&lt;br&gt;
+
+Now we can stick geocoding into our pipeline.
+
+&lt;br&gt;
 
 
 
@@ -976,7 +1070,7 @@ get_lat_long &lt;- function(tbl) {
 
 ```r
 full_tweets %&gt;% 
-  sample_n(1) %&gt;% 
+  sample_n(1) %&gt;%    # Random tweet
   pull_addresses() %&gt;% 
 * get_lat_long() %&gt;%
   select(text, address, lat, long) %&gt;% 
@@ -994,10 +1088,10 @@ full_tweets %&gt;%
  &lt;/thead&gt;
 &lt;tbody&gt;
   &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; Brooklyn **77-75-0855** 899 Hancock Street Near Howard Avenue, All hands going to work for fire I’m the top floor &lt;/td&gt;
-   &lt;td style="text-align:left;"&gt; 899 Hancock Street Near Howard Avenue, Brooklyn &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 40.68623 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; -73.91941 &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; Brooklyn **77-75-0270** 330 Bushwick Avenue Near McKibbin Street, Fire on the 4th Floor &lt;/td&gt;
+   &lt;td style="text-align:left;"&gt; 330 Bushwick Avenue Near McKibbin Street, Brooklyn &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 40.7052 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; -73.9397 &lt;/td&gt;
   &lt;/tr&gt;
 &lt;/tbody&gt;
 &lt;/table&gt;
@@ -1027,19 +1121,9 @@ count_fires &lt;- function(tbl) {
 
 &lt;br&gt;
 
+--
+
 so we can plot them on a map (thanks again, `ggmap`)
-
----
-
-## Mapping
-
-
-```r
-get_map("new york city") %&gt;% 
-  ggmap()
-```
-
-![](index_files/figure-html/unnamed-chunk-28-1.png)&lt;!-- --&gt;
 
 
 ---
@@ -1087,7 +1171,7 @@ Using about a year's worth of tweets (~3k or so):
 plot_fire_sums(fire_sums, output_path = NULL)
 ```
 
-![](index_files/figure-html/unnamed-chunk-29-1.png)&lt;!-- --&gt;
+![](index_files/figure-html/unnamed-chunk-34-1.png)&lt;!-- --&gt;
 
 
 &lt;!-- &lt;p&gt; --&gt;
@@ -1110,6 +1194,8 @@ plot_fire_sums(fire_sums, output_path = NULL)
 --
 
 #### ⚡ Fire trivia lighting round! ⚡
+
+(Code for these in [analysis.R](https://github.com/aedobbyn/nyr-2019/blob/master/R/analysis.R))
 
 
 

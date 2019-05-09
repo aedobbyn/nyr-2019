@@ -69,6 +69,8 @@ class: inverse
 
 - `drake` is a workflow management package for data pipelines (come talk to me about it!)
 
+
+
 --
 
 <br>
@@ -303,9 +305,6 @@ We'll wrap that up in a function that:
 
 A simplified version of `get_seed_tweets`:
 
-If an `input_path` exists, read in from there instead of grabbing tweets.
-If an `output_path` exists, write out what we've got to that path.
-
 ```{r eval=FALSE}
 get_seed_tweets <- function(user = firewire_handle, 
                             n_tweets = 50, max_id = NULL, 
@@ -328,12 +327,18 @@ get_seed_tweets <- function(user = firewire_handle,
 ```
 
 
+???
+If an `input_path` exists, read in from there instead of grabbing tweets.
+If an `output_path` exists, write out what we've got to that path.
+
 
 ---
 
 `status_id` is useful because we can supply a `max_id` to get only tweets older than that ID 
 
-`r emo::ji("right_arrow")` good for working backwards in time to get more and more data `r emo::ji("thumbsup")`
+--
+
+--> good for working backwards in time to get older and older data `r emo::ji("thumbsup")`
 
 --
 
@@ -449,11 +454,12 @@ get_tweets <- function(tbl = NULL,
 
 ---
 
+<br>
+
 #### Let's get some tweets
 
 --
 
-<br>
 
 ```{r}
 get_tweets(n_tweets_seed = 15)
@@ -527,10 +533,10 @@ nrow(full_tweets)
 
 A closer look at just the text of the tweets:
 
-```{r}
+```{r, echo=FALSE}
 full_tweets %>% 
   select(text) %>% 
-  kable()
+  kable(col.names = NULL)
 ```
 
 
@@ -538,13 +544,28 @@ full_tweets %>%
 
 ## Extracting Addresses
 
-Now we need to pull addresses out of the tweets.
+Next step is to pull out addresses.
 
-These come in two parts: borough and street.
+<br>
 
-Through some regexing...
+These come in two parts: **borough** and **street**.
+
+<br>
 
 ```{r, echo=FALSE}
+full_tweets %>% 
+  slice(1:5) %>% 
+  select(text) %>% 
+  kable(col.names = NULL)
+```
+
+---
+
+~ After some fun w/ regexes ~
+
+--
+
+```{r}
 pull_box_address <- function(x) {
   x %>%
     str_extract("Box [0-9]+.+[,\\.]") %>%
@@ -554,22 +575,35 @@ pull_box_address <- function(x) {
 }
 ```
 
+--
 
-```{r}
+for a given tweet
+
+```{r echo=FALSE}
 a_box_address <- 
   full_tweets %>% 
   filter(str_detect(text, "Box [0-9]+[,\\.]")) %>% 
   slice(1) %>% 
   select(text)
- 
-a_box_address %>% 
-  kable()
 ```
 
+```{r, echo=FALSE}
+a_box_address %>% 
+  kable(col.names = NULL)
+```
+
+--
+
+<br>
+
+we can pull just the street address out.
+
+--
 
 ```{r}
 a_box_address %>% 
-  pull_box_address()
+  pull_box_address() %>% 
+  kable(col.names = NULL)
 ```
 
 ---
@@ -580,7 +614,11 @@ a_box_address %>%
 boroughs <- c("Brooklyn", "Bronx", "Manhattan", "Staten", "Queens")
 borough_reg <- boroughs %>%
   str_c(collapse = "|")
-# If a tweet has a borough anywhere in it, pull it out
+```
+
+
+
+```{r}
 clean_borough <- function(x) {
   if (is.na(x) || !str_detect(x, borough_reg)) {
     return(NA_character_)
@@ -595,6 +633,31 @@ clean_borough <- function(x) {
   b
 }
 ```
+
+
+---
+
+## Boroughs
+
+Same tweet again:
+
+```{r, echo=FALSE}
+a_box_address %>% 
+  kable(col.names = NULL)
+```
+
+<br>
+
+--
+
+Now we can grab the borough:
+
+```{r}
+a_box_address %>% 
+  clean_borough() %>% 
+  kable(col.names = NULL)
+```
+
 
 ---
 
@@ -676,11 +739,20 @@ The `ggmap::geocode` accepts a string and returns a dataframe of `lon` and `lat`
 
 #### Where's Sherlock?
 
+```{r}
+london <- get_map("london", zoom = 13) 
+
+ggmap(london)
+```
+
+---
+
+#### Where's Sherlock?
+
 --
 
 ```{r message=FALSE}
-get_map("london", zoom = 13) %>% 
-  ggmap() +
+ggmap(london) +
   geom_point(data = sherlock, 
              aes(x = lon, y = lat), 
              color = "blue", size = 10)
@@ -694,7 +766,7 @@ get_map("london", zoom = 13) %>%
 
 #### Where's Sherlock?
 
-<br>
+<br><br>
 
 <p>
   <img src="https://media.giphy.com/media/EVjAANNjkMBKE/giphy.gif" height="300px" align="middle">
@@ -704,11 +776,17 @@ get_map("london", zoom = 13) %>%
 
 <br>
 
-## `r emo::ji("wave")`
+<div align="middle">
+  <h2> `r emo::ji("wave")` </h2>
+</div>
 
 ---
 
-So we can put that together into a function that works on a dataframe.
+<br>
+
+Now we can stick geocoding into our pipeline.
+
+<br>
 
 
 ```{r}
@@ -740,7 +818,7 @@ get_lat_long <- function(tbl) {
 
 ```{r}
 full_tweets %>% 
-  sample_n(1) %>% 
+  sample_n(1) %>%    # Random tweet
   pull_addresses() %>% 
   get_lat_long() %>%  #<<
   select(text, address, lat, long) %>% 
@@ -771,16 +849,9 @@ count_fires <- function(tbl) {
 
 <br>
 
+--
+
 so we can plot them on a map (thanks again, `ggmap`)
-
----
-
-## Mapping
-
-```{r}
-get_map("new york city") %>% 
-  ggmap()
-```
 
 
 ---
@@ -847,6 +918,8 @@ plot_fire_sums(fire_sums, output_path = NULL)
 --
 
 #### `r emo::ji("high_voltage")` Fire trivia lighting round! `r emo::ji("high_voltage")`
+
+(Code for these in [analysis.R](https://github.com/aedobbyn/nyr-2019/blob/master/R/analysis.R))
 
 ```{r echo=FALSE}
 fires_by_borough <- 
