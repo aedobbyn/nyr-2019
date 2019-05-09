@@ -15,6 +15,10 @@ token](https://rtweet.info/articles/auth.html) and [Google Maps
 Geocoding API
 key](https://developers.google.com/maps/documentation/geocoding/intro#Geocoding).
 
+<!-- <p align="right"> -->
+<img src="https://media.giphy.com/media/AyXYkGy0LQWhG/giphy.gif" height="200" align="right">
+<!-- </p> -->
+
 ### Other things you might want to know
 
 -   All functions live in
@@ -25,7 +29,3 @@ key](https://developers.google.com/maps/documentation/geocoding/intro#Geocoding)
     and
     [geocoded](https://github.com/aedobbyn/nyr-2019/tree/master/data/derived/lat_long.csv)
     tweet motherlode.
-
-<!-- <p align="right"> -->
-<img src="https://media.giphy.com/media/AyXYkGy0LQWhG/giphy.gif" height="200" align="right">
-<!-- </p> -->
