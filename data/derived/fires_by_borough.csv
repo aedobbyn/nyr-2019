@@ -1,6 +1,6 @@
-borough,n,population,fires_per_person
-Staten Island,135,476179,2.835068325146636e-4
-The Bronx,385,1432132,2.6882996818729e-4
-Manhattan,426,1628701,2.615581374359075e-4
-Brooklyn,633,2582830,2.4508000913726414e-4
-Queens,538,2278906,2.360781883939048e-4
+borough,n
+Brooklyn,633
+Queens,538
+Manhattan,426
+The Bronx,385
+Staten Island,135

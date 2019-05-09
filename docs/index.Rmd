@@ -331,12 +331,16 @@ get_seed_tweets <- function(user = firewire_handle,
 
 ---
 
+`status_id` is useful because we can supply a `max_id` to get only tweets older than that ID 
+
+`r emo::ji("right_arrow")` good for working backwards in time to get more and more data `r emo::ji("thumbsup")`
+
+--
 
 ```{r}
 old_tweet_id <- "1084948074588487680" # From Jan 14
 ```
 
-`status_id` is useful because we can supply a `max_id` to get only tweets older than that ID `r emo::ji("thumbsup")`
 
 <br>
 
@@ -475,9 +479,16 @@ seed_tweets <-
     n_tweets_seed = 10,
     max_id = old_tweet_id # Old tweet!
   )
+```
 
+--
+
+<br>
+
+```{r}
 nrow(seed_tweets)
 ```
+
 
 ---
 
@@ -523,6 +534,67 @@ full_tweets %>%
 ```
 
 
+---
+
+## Extracting Addresses
+
+Now we need to pull addresses out of the tweets.
+
+These come in two parts: borough and street.
+
+Through some regexing...
+
+```{r, echo=FALSE}
+pull_box_address <- function(x) {
+  x %>%
+    str_extract("Box [0-9]+.+[,\\.]") %>%
+    str_extract("\\..+?\\.") %>%
+    str_remove_all("[,\\.]") %>%
+    str_trim()
+}
+```
+
+
+```{r}
+a_box_address <- 
+  full_tweets %>% 
+  filter(str_detect(text, "Box [0-9]+[,\\.]")) %>% 
+  slice(1) %>% 
+  select(text)
+ 
+a_box_address %>% 
+  kable()
+```
+
+
+```{r}
+a_box_address %>% 
+  pull_box_address()
+```
+
+---
+
+## Boroughs
+
+```{r}
+boroughs <- c("Brooklyn", "Bronx", "Manhattan", "Staten", "Queens")
+borough_reg <- boroughs %>%
+  str_c(collapse = "|")
+# If a tweet has a borough anywhere in it, pull it out
+clean_borough <- function(x) {
+  if (is.na(x) || !str_detect(x, borough_reg)) {
+    return(NA_character_)
+  }
+  # Return the borough match
+  b <- boroughs[which(str_detect(x, boroughs))][1]
+  if (b == "Bronx") {
+    b <- "The Bronx"
+  } else if (b == "Staten") {
+    b <- "Staten Island"
+  }
+  b
+}
+```
 
 ---
 
@@ -776,9 +848,17 @@ plot_fire_sums(fire_sums, output_path = NULL)
 
 #### `r emo::ji("high_voltage")` Fire trivia lighting round! `r emo::ji("high_voltage")`
 
----
+```{r echo=FALSE}
+fires_by_borough <- 
+  read_csv(here("data", "derived", "fires_by_borough.csv"))
+fires_by_borough_per_cap <- 
+  read_csv(here("data", "derived", "fires_by_borough_per_cap.csv"))
+by_day <-
+  read_csv(here("data", "derived", "fires_by_day.csv"))
+```
 
-<br>
+
+---
 
 #### `r emo::ji("high_voltage")` Fire trivia lighting round! `r emo::ji("high_voltage")`
 
@@ -786,7 +866,7 @@ plot_fire_sums(fire_sums, output_path = NULL)
 
 <br>
 
-*On what days of the week are fires most common?*
+*On what day of the week are fires most common?*
 
 --
 
@@ -794,17 +874,20 @@ plot_fire_sums(fire_sums, output_path = NULL)
 
 Answer: 
 
-**Monday through Wednesday**
+**Wednesday**
 
-```{r}
-
+```{r echo=FALSE}
+by_day %>% 
+  rename(
+    `Day of Week` = wday,
+    `N` = n
+  ) %>% 
+  kable()
 ```
 
 
 
 ---
-
-<br>
 
 #### `r emo::ji("high_voltage")` Fire trivia lighting round! `r emo::ji("high_voltage")`
 
@@ -822,9 +905,15 @@ Answer:
 
 **Brooklyn**
 
+```{r echo=FALSE}
+fires_by_borough %>% 
+  dobtools::cap_df() %>% 
+  kable()
+```
+
+
 ---
 
-<br>
 
 #### `r emo::ji("high_voltage")` Fire trivia lighting round! `r emo::ji("high_voltage")`
 
@@ -840,8 +929,19 @@ Answer:
 
 **Staten Island**
 
+```{r echo=FALSE}
+fires_by_borough_per_cap %>% 
+  dobtools::cap_df() %>% 
+  kable()
+```
+
+<br>
+<br>
+
+(Population stats scraped from [citypopulation.com](https://www.citypopulation.de/php/usa-newyorkcity.php))
 
 ---
+
 
 #### `r emo::ji("high_voltage")` Fire trivia lighting round! `r emo::ji("high_voltage")`
 
@@ -871,3 +971,4 @@ class: inverse
 ## Thanks!
 
 
+<img src="https://media.giphy.com/media/AyXYkGy0LQWhG/giphy.gif" height="450" align="center" style="padding-left:0px;">

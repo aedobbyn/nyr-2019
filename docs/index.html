@@ -377,13 +377,17 @@ get_seed_tweets &lt;- function(user = firewire_handle,
 
 ---
 
+`status_id` is useful because we can supply a `max_id` to get only tweets older than that ID 
+
+➡️ good for working backwards in time to get more and more data 👍
+
+--
 
 
 ```r
 old_tweet_id &lt;- "1084948074588487680" # From Jan 14
 ```
 
-`status_id` is useful because we can supply a `max_id` to get only tweets older than that ID 👍
 
 &lt;br&gt;
 
@@ -554,10 +558,18 @@ seed_tweets &lt;-
     n_tweets_seed = 10,
     max_id = old_tweet_id # Old tweet!
   )
+```
 
+--
+
+&lt;br&gt;
+
+
+```r
 nrow(seed_tweets)
 ## [1] 10
 ```
+
 
 ---
 
@@ -616,6 +628,9 @@ full_tweets %&gt;%
  &lt;/thead&gt;
 &lt;tbody&gt;
   &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Manhattan *2nd Alarm* Box 0524. 99 University Pl. Fire 4th floor. &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
    &lt;td style="text-align:left;"&gt; Manhattan *All Hands* Box 1605. 2441 Adam Clayton Powell Jr Blvd, . Fire 5th floor 7 story &lt;/td&gt;
   &lt;/tr&gt;
   &lt;tr&gt;
@@ -626,9 +641,6 @@ full_tweets %&gt;%
   &lt;/tr&gt;
   &lt;tr&gt;
    &lt;td style="text-align:left;"&gt; Brooklyn *All Hands* Box 1568. 167 Lenox Rd. Fire 1st floor 4 story multiple dwelling &lt;/td&gt;
-  &lt;/tr&gt;
-  &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; Brooklyn *All Hands* Box 0751. 193 Wyckoff Ave off Himrod St.. Fire on the roof 3 story frame multiple dwelling. &lt;/td&gt;
   &lt;/tr&gt;
   &lt;tr&gt;
    &lt;td style="text-align:left;"&gt; Bronx *66-75-3049* 1449 Commonwealth ave. Attic fire private dwelling. &lt;/td&gt;
@@ -665,6 +677,76 @@ full_tweets %&gt;%
 &lt;/table&gt;
 
 
+---
+
+## Extracting Addresses
+
+Now we need to pull addresses out of the tweets.
+
+These come in two parts: borough and street.
+
+Through some regexing...
+
+
+
+
+
+```r
+a_box_address &lt;- 
+  full_tweets %&gt;% 
+  filter(str_detect(text, "Box [0-9]+[,\\.]")) %&gt;% 
+  slice(1) %&gt;% 
+  select(text)
+ 
+a_box_address %&gt;% 
+  kable()
+```
+
+&lt;table&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; text &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Manhattan *2nd Alarm* Box 0524. 99 University Pl. Fire 4th floor. &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+
+
+```r
+a_box_address %&gt;% 
+  pull_box_address()
+## [1] "99 University Pl"
+```
+
+---
+
+## Boroughs
+
+
+```r
+boroughs &lt;- c("Brooklyn", "Bronx", "Manhattan", "Staten", "Queens")
+borough_reg &lt;- boroughs %&gt;%
+  str_c(collapse = "|")
+# If a tweet has a borough anywhere in it, pull it out
+clean_borough &lt;- function(x) {
+  if (is.na(x) || !str_detect(x, borough_reg)) {
+    return(NA_character_)
+  }
+  # Return the borough match
+  b &lt;- boroughs[which(str_detect(x, boroughs))][1]
+  if (b == "Bronx") {
+    b &lt;- "The Bronx"
+  } else if (b == "Staten") {
+    b &lt;- "Staten Island"
+  }
+  b
+}
+```
 
 ---
 
@@ -836,7 +918,7 @@ get_map("london", zoom = 13) %&gt;%
              color = "blue", size = 10)
 ```
 
-![](index_files/figure-html/unnamed-chunk-19-1.png)&lt;!-- --&gt;
+![](index_files/figure-html/unnamed-chunk-24-1.png)&lt;!-- --&gt;
 
 
 ## 👋
@@ -957,7 +1039,7 @@ get_map("new york city") %&gt;%
   ggmap()
 ```
 
-![](index_files/figure-html/unnamed-chunk-23-1.png)&lt;!-- --&gt;
+![](index_files/figure-html/unnamed-chunk-28-1.png)&lt;!-- --&gt;
 
 
 ---
@@ -1005,7 +1087,7 @@ Using about a year's worth of tweets (~3k or so):
 plot_fire_sums(fire_sums, output_path = NULL)
 ```
 
-![](index_files/figure-html/unnamed-chunk-24-1.png)&lt;!-- --&gt;
+![](index_files/figure-html/unnamed-chunk-29-1.png)&lt;!-- --&gt;
 
 
 &lt;!-- &lt;p&gt; --&gt;
@@ -1029,9 +1111,10 @@ plot_fire_sums(fire_sums, output_path = NULL)
 
 #### ⚡ Fire trivia lighting round! ⚡
 
----
 
-&lt;br&gt;
+
+
+---
 
 #### ⚡ Fire trivia lighting round! ⚡
 
@@ -1039,7 +1122,7 @@ plot_fire_sums(fire_sums, output_path = NULL)
 
 &lt;br&gt;
 
-*On what days of the week are fires most common?*
+*On what day of the week are fires most common?*
 
 --
 
@@ -1047,15 +1130,50 @@ plot_fire_sums(fire_sums, output_path = NULL)
 
 Answer: 
 
-**Monday through Wednesday**
+**Wednesday**
 
-
+&lt;table&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; Day of Week &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; N &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Wed &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 347 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Mon &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 327 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Tue &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 312 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Fri &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 306 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Thu &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 303 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Sat &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 289 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Sun &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 286 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
 
 
 
 ---
-
-&lt;br&gt;
 
 #### ⚡ Fire trivia lighting round! ⚡
 
@@ -1073,9 +1191,40 @@ Answer:
 
 **Brooklyn**
 
+&lt;table&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; Borough &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; N &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Brooklyn &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 633 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Queens &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 538 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Manhattan &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 426 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; The Bronx &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 385 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Staten Island &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 135 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+
 ---
 
-&lt;br&gt;
 
 #### ⚡ Fire trivia lighting round! ⚡
 
@@ -1091,8 +1240,56 @@ Answer:
 
 **Staten Island**
 
+&lt;table&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:left;"&gt; Borough &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; N &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; Population &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; Fires Per Person &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Staten Island &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 135 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 476179 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.0002835 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; The Bronx &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 385 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1432132 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.0002688 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Manhattan &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 426 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1628701 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.0002616 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Brooklyn &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 633 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 2582830 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.0002451 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:left;"&gt; Queens &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 538 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 2278906 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 0.0002361 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+
+&lt;br&gt;
+&lt;br&gt;
+
+(Population stats scraped from [citypopulation.com](https://www.citypopulation.de/php/usa-newyorkcity.php))
 
 ---
+
 
 #### ⚡ Fire trivia lighting round! ⚡
 
@@ -1120,6 +1317,9 @@ class: inverse
 &lt;br&gt;
 
 ## Thanks!
+
+
+&lt;img src="https://media.giphy.com/media/AyXYkGy0LQWhG/giphy.gif" height="450" align="center" style="padding-left:0px;"&gt;
     </textarea>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
 <script>var slideshow = remark.create({

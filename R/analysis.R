@@ -49,11 +49,6 @@ fires_by_borough_per_cap <-
   ) %>%
   arrange(desc(fires_per_person))
 
-write_csv(fires_by_borough, 
-          here("data", "derived", "fires_by_borough.csv"))
-write_csv(fires_by_borough_per_cap, 
-          here("data", "derived", "fires_by_borough.csv"))
-
 
 clean_hour <- function(x) {
   if (x == 0) {
@@ -162,3 +157,13 @@ by_hour %>%
 
 ggsave("fires_by_hour.png", path = here("plots"), device = "png")
 ggsave("fires_by_hour.png", path = here("docs", "img"), device = "png")
+
+
+
+
+write_csv(by_day,
+          here("data", "derived", "fires_by_day.csv"))
+write_csv(fires_by_borough, 
+          here("data", "derived", "fires_by_borough.csv"))
+write_csv(fires_by_borough_per_cap, 
+          here("data", "derived", "fires_by_borough_per_cap.csv"))
