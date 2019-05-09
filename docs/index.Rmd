@@ -60,15 +60,13 @@ class: inverse
 
 --
 
-<img src="./img/happy_drake.jpg" height="200" align="right">
-
-
---
-
 <br>
 
 - `drake` is a workflow management package for data pipelines (come talk to me about it!)
 
+--
+
+<img src="./img/happy_drake.jpg" height="200" align="right">
 
 
 --
@@ -116,7 +114,9 @@ Remember the [crazy blue light](https://twitter.com/NYCFireWire/status/107847836
 
 --
 
-`r emo::ji("scream")` `r emo::ji("scream")` `r emo::ji("scream")`
+<br>
+
+## `r emo::ji("scream")` `r emo::ji("scream")` `r emo::ji("scream")`
 
 
 ---
@@ -126,6 +126,8 @@ Remember the [crazy blue light](https://twitter.com/NYCFireWire/status/107847836
 <br>
 
 The Twitter account that let us know that this wasn't in fact aliens is [NYCFireWire](https://twitter.com/NYCFireWire).
+
+--
 
 <br>
 
@@ -616,7 +618,7 @@ borough_reg <- boroughs %>%
   str_c(collapse = "|")
 ```
 
-
+<br>
 
 ```{r}
 clean_borough <- function(x) {
