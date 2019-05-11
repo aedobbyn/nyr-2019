@@ -19,7 +19,7 @@ output:
 ```{r setup, include=FALSE, warning=FALSE}
 library(knitr)
 library(kableExtra)
-opts_chunk$set(echo = TRUE, eval = TRUE, collapse = TRUE, cache = TRUE, message = FALSE)
+opts_chunk$set(echo = TRUE, eval = TRUE, collapse = TRUE, cache = FALSE, message = FALSE)
 options(htmltools.dir.version = FALSE)
 options(knitr.table.format = "html")
 
@@ -684,7 +684,7 @@ plan <-
 
 ---
 
-<img src="./img/fire_plan_vis.jpg" style="padding-left:0px;">
+<img src="./img/drake_out_of_date.jpg" style="padding-left:0px;">
 
 ---
 
@@ -1041,6 +1041,10 @@ plot_fire_sums(fire_sums, output_path = NULL)
 <!-- <p> -->
 <!-- <img src="./img/fire_sums_plot.png"> -->
 <!-- </p> -->
+
+---
+
+<img src="./img/drake_out_of_date.jpg" style="padding-left:0px;">
  
 ---
 
