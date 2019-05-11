@@ -440,6 +440,7 @@ class: inverse
 
 > **Plans** wrap up the relationship between targets and commands into a workflow representation: a dataframe.
 
+
 <br>
 
 ???
@@ -467,7 +468,13 @@ write_out_my_results(final)
 
 <br>
 
+---
+
 *But*, a plan **knows about the dependencies** in your code.
+
+--
+
+<img src="./img/drakes_plan.jpg" style="padding-left:0px;">
 
 
 ---
