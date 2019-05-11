@@ -32,10 +32,9 @@ class: inverse
 
 .left-column[
 
-**Day job**: Data Scientist at [Earlybird Software](http://www.earlybird.co/), former co-organizer of [R-Ladies Chicago](https://rladieschicago.org/)
+**Day job**: ultimate frisbee player
 
-**For fun**: ultimate frisbee player
-&lt;!-- .pull-left[![](./img/pingpong.jpg)] --&gt;
+**For fun**: Data Scientist at [Earlybird Software](http://www.earlybird.co/), former co-organizer of [R-Ladies Chicago](https://rladieschicago.org/)
 
 **GitHub**: [@aedobbyn](https://github.com/aedobbyn)
 
@@ -56,7 +55,6 @@ class: inverse
 
 --
 
-&lt;br&gt;
 
 - `drake` is a workflow management package for data pipelines (come talk to me about it!)
 
@@ -176,7 +174,7 @@ What if we were constructing an analysis of these tweets and wanted to make sure
 
 &lt;br&gt;
 
-All functions are defined in [`didnt_start_it.R`](https://github.com/aedobbyn/nyr-2019/blob/master/R/didnt_start_it.R), which we'll source in now.
+All functions are defined in [`R/didnt_start_it.R`](https://github.com/aedobbyn/nyr-2019/blob/master/R/didnt_start_it.R) in this repo, which we'll source in now.
 
 
 ```r
@@ -363,7 +361,9 @@ get_seed_tweets &lt;- function(user = firewire_handle,
       read_csv(input_path)
   } else {
     out &lt;-
-      get_timeline(user = user, n = n_tweets, max_id = max_id) %&gt;%
+      get_timeline(user = user, 
+                   n = n_tweets, 
+                   max_id = max_id) %&gt;%
       select(text, status_id, created_at, screen_name) 
   }
 
@@ -551,7 +551,7 @@ get_tweets(n_tweets_seed = 15)
 
 ## Reupping Tweets
 
-To show how `get_tweets` can start with a `tbl` of tweets and look for new ones,
+To test if `get_tweets` can start with a `tbl` of tweets and look for new ones,
 
 we'll grab 10 `seed_tweets` that are all **older** than an old tweet ID.
 
@@ -1381,7 +1381,6 @@ Answer:
 
 #### ⚡ Fire trivia lighting round! ⚡
 
-&lt;br&gt;
 
 *What time of day do fires typically happen?*
 
@@ -1397,6 +1396,8 @@ Answer:
 &lt;img src="./img/fires_by_hour.png" style="padding-left:0px;"&gt;
 
 &lt;!-- style="padding-right:100px;" --&gt;
+
+(Daily sunrise and sunset times scraped from [timeanddate.com](https://www.timeanddate.com/sun/usa/new-york).)
 
 ---
 

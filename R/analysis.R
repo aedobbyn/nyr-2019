@@ -172,7 +172,7 @@ write_csv(fires_by_borough_per_cap,
 
 
 
-# Get average sunrise and sunset times
+# Get average sunrise and sunset times for vlines in Fires by Hour plot
 
 clean_time <- function(x) {
   x %>% 
