@@ -19,10 +19,12 @@ output:
 ```{r setup, include=FALSE, warning=FALSE}
 library(knitr)
 library(kableExtra)
-opts_chunk$set(echo = TRUE, eval = TRUE, collapse = TRUE, cache = FALSE, message = FALSE)
+opts_chunk$set(echo = TRUE, eval = TRUE, collapse = TRUE, cache = TRUE, message = FALSE)
 options(htmltools.dir.version = FALSE)
 options(knitr.table.format = "html")
 
+library(here)
+library(readr)
 fire_sums <-
   read_csv(here("data", "derived", "fire_sums.csv"))
 ```
@@ -1027,6 +1029,22 @@ count_fires <- function(tbl) {
 
 so we can plot them on a map (thanks again, `ggmap`)
 
+
+---
+
+### Running our whole plan...
+
+<br><br>
+
+```{r}
+plan
+```
+
+
+---
+
+<img src="./img/drake_up_to_date.jpg" style="padding-left:0px;">
+ 
 ---
 
 Using about a year's worth of tweets (~3k or so):
@@ -1042,10 +1060,8 @@ plot_fire_sums(fire_sums, output_path = NULL)
 <!-- <img src="./img/fire_sums_plot.png"> -->
 <!-- </p> -->
 
----
 
-<img src="./img/drake_out_of_date.jpg" style="padding-left:0px;">
- 
+
 ---
 
 <img src="https://media.giphy.com/media/5VMNcCxVBibZK/giphy.gif" height="300px">

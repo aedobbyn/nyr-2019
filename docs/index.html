@@ -1294,6 +1294,32 @@ count_fires &lt;- function(tbl) {
 
 so we can plot them on a map (thanks again, `ggmap`)
 
+
+---
+
+### Running our whole plan...
+
+&lt;br&gt;&lt;br&gt;
+
+
+```r
+plan
+## # A tibble: 6 x 3
+##   target     command                   trigger                             
+##   &lt;chr&gt;      &lt;expr&gt;                    &lt;expr&gt;                              
+## 1 seed_fires get_tweets()            … NA                                 …
+## 2 fires      get_tweets(tbl = seed_fi… trigger(condition = there_are_new_t…
+## 3 addresses  pull_addresses(fires)   … NA                                 …
+## 4 lat_long   get_lat_long(addresses) … NA                                 …
+## 5 fire_sums  count_fires(lat_long)   … NA                                 …
+## 6 plot       plot_fire_sums(fire_sums… NA                                 …
+```
+
+
+---
+
+&lt;img src="./img/drake_up_to_date.jpg" style="padding-left:0px;"&gt;
+ 
 ---
 
 Using about a year's worth of tweets (~3k or so):
@@ -1305,13 +1331,15 @@ Using about a year's worth of tweets (~3k or so):
 plot_fire_sums(fire_sums, output_path = NULL)
 ```
 
-![](index_files/figure-html/unnamed-chunk-29-1.png)&lt;!-- --&gt;
+![](index_files/figure-html/unnamed-chunk-30-1.png)&lt;!-- --&gt;
 
 
 &lt;!-- &lt;p&gt; --&gt;
 &lt;!-- &lt;img src="./img/fire_sums_plot.png"&gt; --&gt;
 &lt;!-- &lt;/p&gt; --&gt;
- 
+
+
+
 ---
 
 &lt;img src="https://media.giphy.com/media/5VMNcCxVBibZK/giphy.gif" height="300px"&gt;
