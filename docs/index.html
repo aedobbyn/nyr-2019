@@ -210,6 +210,9 @@ lat_long &lt;-
 # Sum up n fires by lat-long combo
 fire_sums &lt;-
   count_fires(lat_long)
+
+# Plot fires on a map
+plot_fire_sums(fire_sums)
 ```
 
 
@@ -1334,7 +1337,7 @@ Answer:
 &lt;table&gt;
  &lt;thead&gt;
   &lt;tr&gt;
-   &lt;th style="text-align:left;"&gt; Borough &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; Borough &lt;/th&gt;
    &lt;th style="text-align:right;"&gt; N &lt;/th&gt;
    &lt;th style="text-align:right;"&gt; Population &lt;/th&gt;
    &lt;th style="text-align:right;"&gt; Fires Per Person &lt;/th&gt;
@@ -1342,33 +1345,33 @@ Answer:
  &lt;/thead&gt;
 &lt;tbody&gt;
   &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; Staten Island &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; Staten Island &lt;/td&gt;
    &lt;td style="text-align:right;"&gt; 135 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 476179 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 476,179 &lt;/td&gt;
    &lt;td style="text-align:right;"&gt; 0.0002835 &lt;/td&gt;
   &lt;/tr&gt;
   &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; The Bronx &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; The Bronx &lt;/td&gt;
    &lt;td style="text-align:right;"&gt; 385 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 1432132 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1,432,132 &lt;/td&gt;
    &lt;td style="text-align:right;"&gt; 0.0002688 &lt;/td&gt;
   &lt;/tr&gt;
   &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; Manhattan &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; Manhattan &lt;/td&gt;
    &lt;td style="text-align:right;"&gt; 426 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 1628701 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 1,628,701 &lt;/td&gt;
    &lt;td style="text-align:right;"&gt; 0.0002616 &lt;/td&gt;
   &lt;/tr&gt;
   &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; Brooklyn &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; Brooklyn &lt;/td&gt;
    &lt;td style="text-align:right;"&gt; 633 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 2582830 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 2,582,830 &lt;/td&gt;
    &lt;td style="text-align:right;"&gt; 0.0002451 &lt;/td&gt;
   &lt;/tr&gt;
   &lt;tr&gt;
-   &lt;td style="text-align:left;"&gt; Queens &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; Queens &lt;/td&gt;
    &lt;td style="text-align:right;"&gt; 538 &lt;/td&gt;
-   &lt;td style="text-align:right;"&gt; 2278906 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 2,278,906 &lt;/td&gt;
    &lt;td style="text-align:right;"&gt; 0.0002361 &lt;/td&gt;
   &lt;/tr&gt;
 &lt;/tbody&gt;

@@ -212,6 +212,9 @@ lat_long <-
 # Sum up n fires by lat-long combo
 fire_sums <-
   count_fires(lat_long)
+
+# Plot fires on a map
+plot_fire_sums(fire_sums)
 ```
 
 
@@ -1009,8 +1012,12 @@ Answer:
 
 ```{r echo=FALSE}
 fires_by_borough_per_cap %>% 
+  mutate(
+    population = population %>% format(big.mark = ",")
+  ) %>% 
+  select(borough, n, population, fires_per_person) %>% 
   dobtools::cap_df() %>% 
-  kable()
+  kable(align = "r")
 ```
 
 <br>
