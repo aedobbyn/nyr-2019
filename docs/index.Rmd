@@ -94,6 +94,7 @@ To be able to run it in full you'll need a [Twitter API access token](https://rt
 All code, slides, and data on [GitHub](https://github.com/aedobbyn/nyr-2019). Use for whatever you like!
 
 
+
 ---
 
 class: blue-light 
@@ -534,6 +535,8 @@ nrow(full_tweets)
 ---
 
 A closer look at just the text of the tweets:
+
+--
 
 ```{r, echo=FALSE}
 full_tweets %>% 
