@@ -72,6 +72,8 @@ class: inverse
 
 <br>
 <br>
+<br>
+<br>
 
 **Caveats**
 
@@ -770,14 +772,6 @@ We'll wrap that up in a function that:
 
 --
 
-<br>
-
-**Wrapper**
-
-- `get_tweets` 
-  - If *not* passed a dataframe: runs `get_seed_tweets` 
-  - If passed a dataframe: runs `get_more_tweets`
-  
 
 ???
 
