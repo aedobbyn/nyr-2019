@@ -55,12 +55,13 @@ class: inverse
 ## This Talk
 
 
-- Was originally a [talk](https://aedobbyn.github.io/nyc-fires/index.html) about the [`drake`](https://github.com/ropensci/drake) package
+- We will use Twitter and Google Maps APIs to figure out when and where fires happen in NYC
 
 --
 
+<br>
 
-- `drake` is a workflow management package for data pipelines (come talk to me about it!)
+- Great use case for the `drake` package!
 
 --
 
@@ -70,13 +71,6 @@ class: inverse
 --
 
 <br>
-
-#### The Pipeline
-
-- Will use Twitter and Google Maps geocoding APIs to figure out when and where fires happen in NYC
-
---
-
 <br>
 
 **Caveats**
@@ -89,9 +83,131 @@ To be able to run it in full you'll need a [Twitter API access token](https://rt
 
 <br>
 <br>
-<br>
 
 All code, slides, and data on [GitHub](https://github.com/aedobbyn/nyr-2019). Use for whatever you like!
+
+---
+
+class: blue-light 
+
+<!-- background-image: url("https://static01.nyt.com/images/2018/12/29/nyregion/28xp-explosion-sub-print/28xp-explosion-sub-facebookJumbo.jpg) -->
+
+## Why Fires?
+
+Remember the [crazy blue light](https://twitter.com/NYCFireWire/status/1078478369036165121) in NYC from late December?
+
+--
+
+<p align="left" style="padding-right: 20%;">
+<img src="./img/blue_light.jpg" height="350px">
+</p>
+
+--
+
+<br>
+
+## `r emo::ji("scream")` `r emo::ji("scream")` `r emo::ji("scream")`
+
+
+---
+
+.pull-right[![](./img/nyc_fire.jpg)]
+
+<br>
+
+The Twitter account that let us know that this wasn't in fact aliens is [NYCFireWire](https://twitter.com/NYCFireWire).
+
+--
+
+<br>
+
+Normally they just tweet out fires and their locations in a more or less predictable pattern:
+
+<br>
+
+
+--
+Before February:
+
+`<borough> ** <some numbers> ** <address> <description of fire>`
+
+After February:
+
+`<borough> *<type of fire>* Box <digits> <address> <description of fire>`
+
+<br>
+
+
+We can use their tweets to get some info on where and when fires happen in NYC.
+
+
+???
+
+I'll illustrate a way you might want to use `drake` with something that's close to home for us.
+
+What if we were constructing an analysis of these tweets and wanted to make sure our pipeline worked end-to-end, but didn't want to unnecessarily re-run outdated parts of it unless we needed to?
+
+
+---
+
+## The Pipeline
+
+1. Pull in tweets, either a big initial batch or any new ones that show up
+
+--
+
+2. Extract addresses from the tweets (`r emo::ji("notes")` regex time `r emo::ji("notes")`)
+
+--
+
+3. Send addresses to the Google Maps API to grab their latitudes and longitudes
+
+--
+
+4. Profit
+
+--
+
+<br>
+
+All functions are defined in [`R/didnt_start_it.R`](https://github.com/aedobbyn/nyr-2019/blob/master/R/didnt_start_it.R) in this repo, which we'll source in now.
+
+```{r, warning=FALSE, message=FALSE}
+source(here::here("R", "didnt_start_it.R")) 
+```
+
+
+---
+
+### Sans `drake`
+
+
+```{r eval=FALSE}
+# Get tweets
+lots_o_fires <-
+  get_tweets(
+    n_tweets_seed = 3000,
+    output_path = here("data", "raw", "lots_o_fires.csv"),
+    write_out = TRUE
+  )
+
+# Pull out addresses
+addresses <-
+  pull_addresses(lots_o_fires)
+
+# Geocode
+lat_long <-
+  get_lat_long(addresses)
+
+# Sum up n fires by lat-long combo
+fire_sums <-
+  count_fires(lat_long)
+
+# Plot fire sums on a map of NYC
+plot_fire_sums(fire_sums)
+```
+
+
 
 ---
 
@@ -292,6 +408,14 @@ Which you know if you've tried to add another intermediate step or reorganize yo
 
 ---
 
+## Dependency Graph
+
+
+<img src="./img/simple_drake_vis.jpg" style="padding-left:0px;">
+
+
+---
+
 class: inverse
 
 ## A Few Pieces of `drake` Vocab
@@ -471,7 +595,7 @@ because those are both part of the command used to generate `results`.
 
 ---
 
-## Where is all this info stored?
+## Where is all this stuff stored?
 
 <br>
 
@@ -502,138 +626,11 @@ In a hidden `.drake` directory, or cache, in your project's root. [More on stora
 
 ---
 
-## Where is all this info stored?
-
-<br>
-
-#### **dependencies**
-
---
-
-`drake` **hashes** a target's dependencies to know when one of those dependencies changes
-
---
-
-<p align="left">
-  <img src="./img/drake_cache_hashes_small.jpg" height="150px">
-  <figcaption style="margin-left: 20%;">Inside the data subdir of the .drake cache</figcaption>
-</p>
-
-
---
-
-and creates a `config` list that stores a dependency graph (`igraph` object) of the plan along with a bunch of other things.
-
---
-
-You can access all of this with `drake_config()`.
-
-???
-You can check that the cache is there with `ls -a`.
-
-You have [control](https://ropensci.github.io/drake/articles/storage.html#hash-algorithms) over the hashing algorithm used, location of the cache, etc.
-
-
----
-
-class: blue-light 
-
-<!-- background-image: url("https://static01.nyt.com/images/2018/12/29/nyregion/28xp-explosion-sub-print/28xp-explosion-sub-facebookJumbo.jpg) -->
-
-## Why Fires?
-
-Remember the [crazy blue light](https://twitter.com/NYCFireWire/status/1078478369036165121) in NYC from late December?
-
---
-
-<p align="left" style="padding-right: 20%;">
-<img src="./img/blue_light.jpg" height="350px">
-</p>
-
---
-
-<br>
-
-## `r emo::ji("scream")` `r emo::ji("scream")` `r emo::ji("scream")`
-
-
----
-
-.pull-right[![](./img/nyc_fire.jpg)]
-
-<br>
-
-The Twitter account that let us know that this wasn't in fact aliens is [NYCFireWire](https://twitter.com/NYCFireWire).
-
---
-
-<br>
-
-Normally they just tweet out fires and their locations in a more or less predictable pattern:
-
-<br>
-
-
---
-Before February:
-
-`<borough> ** <some numbers> ** <address> <description of fire>`
-
-After February:
-
-`<borough> *<type of fire>* Box <digits> <address> <description of fire>`
-
-<br>
-
-
-We can use their tweets to get some info on where and when fires happen in NYC.
-
-
-???
-
-I'll illustrate a way you might want to use `drake` with something that's close to home for us.
-
-What if we were constructing an analysis of these tweets and wanted to make sure our pipeline worked end-to-end, but didn't want to unnecessarily re-run outdated parts of it unless we needed to?
-
-
----
-
-## The Pipeline
-
-1. Pull in tweets, either a big initial batch or any new ones that show up
-
---
-
-2. Extract addresses from the tweets (`r emo::ji("notes")` regex time `r emo::ji("notes")`)
-
---
-
-3. Send addresses to the Google Maps API to grab their latitudes and longitudes
-
---
-
-4. Profit
-
---
-
-<br>
-
-All functions are defined in [`R/didnt_start_it.R`](https://github.com/aedobbyn/nyr-2019/blob/master/R/didnt_start_it.R) in this repo, which we'll source in now.
-
-```{r, warning=FALSE, message=FALSE}
-source(here::here("R", "didnt_start_it.R")) 
-```
-
-
----
-
-### Sneak Peek
-
-(Sans `drake`)
+### Without `drake`
 
 ```{r eval=FALSE}
 # Get tweets
-lots_o_fires <-
+fires <-
   get_tweets(
     n_tweets_seed = 3000,
     output_path = here("data", "raw", "lots_o_fires.csv"),
@@ -642,7 +639,7 @@ lots_o_fires <-
 
 # Pull out addresses
 addresses <-
-  pull_addresses(lots_o_fires)
+  pull_addresses(fires)
 
 # Geocode
 lat_long <-
@@ -657,9 +654,12 @@ plot_fire_sums(fire_sums)
 ```
 
 
+
 ---
 
-With drake:
+## With `drake`
+
+<br>
 
 ```{r}
 plan <-
@@ -682,6 +682,22 @@ plan <-
 
 ---
 
+<img src="./img/fire_plan_vis.jpg" style="padding-left:0px;">
+
+---
+
+<br>
+
+```{r}
+plan
+```
+
+
+--
+
+<br>
+
+#### Yay, let's get some `r emo::ji("fire")`s!
 
 ---
 
@@ -783,69 +799,6 @@ get_tweets(n_tweets_seed = 15)
 ```
 
 
-
----
-
-## Reupping Tweets
-
-To test if `get_tweets` can start with a `tbl` of tweets and look for new ones,
-
-we'll grab 10 `seed_tweets` that are all **older** than an old tweet ID.
-
---
-
-<br>
-
-```{r}
-seed_tweets <- 
-  get_tweets(
-    n_tweets_seed = 10,
-    max_id = old_tweet_id # Old tweet!
-  )
-```
-
---
-
-<br>
-
-```{r}
-nrow(seed_tweets)
-```
-
-
----
-
-## Reupping Tweets
-
-Using `seed_tweets` as an input to the same `get_tweets` function,
-
-we check for new tweets, and, if there are any, pull them in.
-
---
-
-```{r}
-full_tweets <- 
-  get_tweets(seed_tweets, 
-             n_tweets_reup = 5) #<<
-```
-
---
-
-<br>
-
-```{r}
-nrow(seed_tweets)
-```
-
---
-
-<br>
-
-```{r}
-nrow(full_tweets)
-```
-
-
 ---
 
 A closer look at just the text of the tweets:
@@ -923,98 +876,6 @@ we can pull just the street address out.
 a_box_address %>% 
   pull_box_address() %>% 
   kable(col.names = NULL)
-```
-
----
-
-## Boroughs
-
-```{r}
-boroughs <- c("Brooklyn", "Bronx", "Manhattan", "Staten", "Queens")
-borough_reg <- boroughs %>%
-  str_c(collapse = "|")
-```
-
-<br>
-
-```{r}
-clean_borough <- function(x) {
-  if (is.na(x) || !str_detect(x, borough_reg)) {
-    return(NA_character_)
-  }
-  # Return the borough match
-  b <- boroughs[which(str_detect(x, boroughs))][1]
-  if (b == "Bronx") {
-    b <- "The Bronx"
-  } else if (b == "Staten") {
-    b <- "Staten Island"
-  }
-  b
-}
-```
-
-
----
-
-## Boroughs
-
-Same tweet again:
-
-```{r, echo=FALSE}
-a_box_address %>% 
-  kable(col.names = NULL)
-```
-
-<br>
-
---
-
-Now we can grab the borough:
-
-```{r}
-a_box_address %>% 
-  clean_borough() %>% 
-  kable(col.names = NULL)
-```
-
-
----
-
-## Getting Addresses
-
-With `pull_addresses` we parse the text of the tweet to pull out borough and street and string them together into an address.
-
-```{r}
-pull_addresses <- function(tbl) {
-  tbl %>%
-    mutate(
-      text = str_replace_all(text, "&amp;", "&"),
-      borough = str_extract(text, "^[^\\s]*\\s") %>%
-        str_remove("\\s"),
-      street =
-        case_when(
-          str_detect(text, "Box") ~ pull_box_address(text),
-          TRUE ~ pull_non_box_address(text)
-        )
-    ) %>%
-    rowwise() %>%
-    mutate(
-      borough =
-        case_when(
-          str_detect(borough, borough_reg) ~ borough %>% 
-            clean_borough(),
-          TRUE ~ NA_character_
-        ),
-      address =
-        glue::glue("{street}, {borough}", .na = "") %>%
-          str_remove("[, ]?") %>%
-          str_trim()
-    ) %>%
-    mutate(
-      address = na_if(address, "")
-    ) %>%
-    select(borough, street, address, text, created_at)
-}
 ```
 
 
@@ -1171,42 +1032,6 @@ count_fires <- function(tbl) {
 --
 
 so we can plot them on a map (thanks again, `ggmap`)
-
-
----
-
-```{r plot_fire_sums, eval=FALSE}
-plot_fire_sums <- function(tbl, city = nyc_map,
-                           output_path = 
-                             here("plots", "fire_sums_plot.png"),
-                           ...) {
-  tbl <-
-    tbl %>%
-    drop_na(lat, long)
-
-  fire_layer <-
-    geom_point(
-      data = tbl, aes(long, lat, size = n),
-      color = "red", alpha = 0.5
-    )
-
-  plt <- ggmap(city) +
-    fire_layer +
-    ggtitle("Fires were Started") +
-    labs(x = "Longitude", y = "Latitude",
-         size = "Number of Fires") +
-    theme_light()
-
-  if (!is.null(output_path)) {
-    ggsave(output_path,
-      device = "png"
-    )
-  } else {
-    plt
-  }
-}
-```
-
 
 ---
 
