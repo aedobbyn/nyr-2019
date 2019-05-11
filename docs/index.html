@@ -646,6 +646,39 @@ In a hidden `.drake` directory, or cache, in your project's root. [More on stora
 
 ---
 
+## Where is all this info stored?
+
+&lt;br&gt;
+
+#### **dependencies**
+
+--
+
+`drake` **hashes** a target's dependencies to know when one of those dependencies changes
+
+--
+
+&lt;p align="left"&gt;
+  &lt;img src="./img/drake_cache_hashes_small.jpg" height="150px"&gt;
+  &lt;figcaption style="margin-left: 20%;"&gt;Inside the data subdir of the .drake cache&lt;/figcaption&gt;
+&lt;/p&gt;
+
+
+--
+
+and creates a `config` list that stores a dependency graph (`igraph` object) of the plan along with a bunch of other things.
+
+--
+
+You can access all of this with `drake_config()`.
+
+???
+You can check that the cache is there with `ls -a`.
+
+You have [control](https://ropensci.github.io/drake/articles/storage.html#hash-algorithms) over the hashing algorithm used, location of the cache, etc.
+
+---
+
 ### Without `drake`
 
 
