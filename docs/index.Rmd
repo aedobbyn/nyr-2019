@@ -188,7 +188,7 @@ source(here::here("R", "didnt_start_it.R"))
 
 ```{r eval=FALSE}
 # Get tweets
-lots_o_fires <-
+fires <-
   get_tweets(
     n_tweets_seed = 3000,
     output_path = here("data", "raw", "lots_o_fires.csv"),
@@ -197,7 +197,7 @@ lots_o_fires <-
 
 # Pull out addresses
 addresses <-
-  pull_addresses(lots_o_fires)
+  pull_addresses(fires)
 
 # Geocode
 lat_long <-
@@ -663,12 +663,13 @@ plot_fire_sums(fire_sums)
 
 ## With `drake`
 
-<br>
 
 ```{r}
 plan <-
   drake_plan(
+      # Get a seed batch of tweets
     seed_fires = get_tweets(), 
+      # Reup if there are new tweets
     fires = target(
       command = get_tweets(tbl = seed_fires),
       trigger = trigger(condition = there_are_new_tweets) 
@@ -679,7 +680,7 @@ plan <-
     lat_long = get_lat_long(addresses), 
       # Sum up n fires per lat-long combo
     fire_sums = count_fires(lat_long), 
-
+      # Plot fires on a map of NYC
     plot = plot_fire_sums(fire_sums)
   )
 ```
