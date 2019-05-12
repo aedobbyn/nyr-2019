@@ -3,9 +3,13 @@
 
 ### 🎥 [slides here](https://aedobbyn.github.io/nyr-2019/) 🎥
 
-This talk was given at [NYR 2019](https://www.rstats.nyc/).
+This talk was given at [NYR 2019](https://www.rstats.nyc/). The
+[original talk](https://aedobbyn.github.io/nyc-fires/index.html) (even
+more `drake` !! + some live coding) was given at [RLadies
+NYC](https://www.rladiesnyc.org/). [Repo
+here](https://github.com/aedobbyn/nyc-fires).
 
-It is motivated by the [**NYCFireWire Twitter
+The analysis is motivated by the [**NYCFireWire Twitter
 account**](https://twitter.com/NYCFireWire).
 
 It relies on the [**`rtweet`**](https://github.com/mkearney/rtweet) and
