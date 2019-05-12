@@ -3,11 +3,7 @@
 
 ### 🎥 [slides here](https://aedobbyn.github.io/nyr-2019/) 🎥
 
-This talk was given at [NYR 2019](https://www.rstats.nyc/). The
-[original talk](https://aedobbyn.github.io/nyc-fires/index.html) (even
-more `drake` !! + some live coding) was given at [RLadies
-NYC](https://www.rladiesnyc.org/). [Repo
-here](https://github.com/aedobbyn/nyc-fires).
+This talk was given at [NYR 2019](https://www.rstats.nyc/).
 
 The analysis is motivated by the [**NYCFireWire Twitter
 account**](https://twitter.com/NYCFireWire).
@@ -24,6 +20,11 @@ key](https://developers.google.com/maps/documentation/geocoding/intro#Geocoding)
 <!-- </p> -->
 
 ### Other things you might want to know
+
+-   The [original talk](https://aedobbyn.github.io/nyc-fires/index.html)
+    was given at [RLadies NYC](https://www.rladiesnyc.org/) ([repo
+    here](https://github.com/aedobbyn/nyc-fires)). It includes even more
+    `drake` (!!) plus some live coding.
 
 -   All functions live in
     [`didnt_start_it.R`](https://github.com/aedobbyn/nyr-2019/blob/master/R/didnt_start_it.R).
